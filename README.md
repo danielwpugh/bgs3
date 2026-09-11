@@ -2,13 +2,19 @@
 
 The public UI is a static React/Vite application packaged for Amazon SALP. The existing Next.js application runs the API, PostgreSQL access, image uploads, and admin interface on DigitalOcean. No iframe or frontend Node server is needed on SALP.
 
-## Pause / resume checkpoint — September 10, 2026
+## Test locally today — September 11, 2026
 
-Implementation is saved locally and **has not been committed or deployed**. See [HANDOFF.md](HANDOFF.md) for the exact validation status and remaining work. The local database retains roughly one million fixture votes under `.local/postgres`; no production database was touched. The latest local-only SALP ZIP is under `artifacts/local/`.
+The saved database is configured with 200 players and approximately one million votes. From this repository, run:
 
-To resume, start `npm run db:local:native` in one terminal, then `npm run dev` in another. No reseeding is needed unless you want to replace the fixtures. For build verification, stop dev servers and follow the validation commands below.
+```bash
+npm run local
+```
 
-Next priorities: finish container/CI smoke testing, check final mobile loading on actual SALP, configure the real staging API/origins/page ID, and rehearse the existing-database baseline on a staging clone before any deployment.
+This starts the saved PostgreSQL database, API/admin, and frontend together. Open **http://127.0.0.1:5173** for the UI and **http://127.0.0.1:3000/admin** for admin (`local_admin` / `local-beastgames-admin`). Ctrl-C stops all three; data stays on disk. Do not start the separate database/dev commands at the same time. On a fresh machine, complete the setup below first.
+
+The reviewed checkpoint fixes database restart and credential-free image builds. Clean installation/build, standalone runtime, migration rehearsal, and browser checks are recorded in [HANDOFF.md](HANDOFF.md). No external deployment has been made. Docker/Linux and GitHub Actions execution still require a Docker-capable machine or pushing the committed workflow.
+
+Staging is configured for `https://bg-api.lightsailvr.com/api/v1`, Amazon origin `https://www.amazon.com`, and page ID `beastgames-s3contestants`. `npm run build:salp:staging` produces the corresponding ZIP. Local builds keep their own localhost configuration. The [deployment notes](DEPLOYMENT.md) include the recommended DigitalOcean Droplet/database sizes and the existing-database baseline procedure.
 
 ## Local quick start
 

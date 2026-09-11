@@ -34,7 +34,12 @@
     "deploy:backend": "bash scripts/deploy-backend.sh",
     "db:local:native": "node scripts/local-postgres.mjs",
     "preview:salp": "node scripts/preview-salp.mjs",
-    "test:page-performance": "node scripts/page-performance.mjs"
+    "test:page-performance": "node scripts/page-performance.mjs",
+    "db:rehearse": "node --env-file-if-exists=.env scripts/rehearse-migration.mjs",
+    "test:docker": "bash scripts/docker-smoke.sh",
+    "test:backend-smoke": "node scripts/smoke-backend.mjs",
+    "configure:staging": "node scripts/staging-config.mjs",
+    "local": "node scripts/local.mjs"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^7.1.0",

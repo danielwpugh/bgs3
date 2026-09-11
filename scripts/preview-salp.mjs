@@ -1,9 +1,11 @@
+import { loadEnv } from 'vite';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { resolve, extname, sep } from 'node:path';
 const mode=process.argv[2]||'local';
 if(!['local','staging','production'].includes(mode))throw new Error('Invalid environment');
-const pageId=process.env.SALP_PAGE_ID||'beastgames';
+const env=loadEnv(mode==='local'?'development':mode,resolve('environments'),'VITE_');
+const pageId=process.env.SALP_PAGE_ID||env.VITE_SALP_PAGE_ID||'beastgames';
 if(!/^[a-z0-9-]+$/.test(pageId))throw new Error('Invalid page ID');
 const root=resolve('artifacts',mode,pageId);
 const types={'.js':'application/javascript','.css':'text/css','.png':'image/png','.jpg':'image/jpeg','.webp':'image/webp','.html':'text/html'};

@@ -84,3 +84,32 @@ A public client never retries a vote automatically. Its stable UUID supports bro
 ## Still requires deployment-specific verification
 
 Actual API hostname, Amazon origins/page ID/CSP, DigitalOcean credentials, database baseline state, TLS, persistent uploads, registry access, and SALP acceptance are environment-specific. No external deployment is performed by the local setup. Docker image execution is covered by the supplied workflow design but must be run on a Docker-capable machine; local native tests do not substitute for a container smoke test.
+
+## Confirmed staging target (September 11, 2026)
+
+- API: `https://bg-api.lightsailvr.com/api/v1`
+- SALP page: `https://www.amazon.com/salp/beastgames-s3contestants`
+- SALP page ID / static asset prefix: `beastgames-s3contestants`
+- CORS origin: `https://www.amazon.com` (no URL path).
+
+`environments/.env.staging` has been configured locally. Its public values are reproducible from the checked-in `.env.staging.example`. `deploy/staging.env.example` contains the backend template. Private database credentials and JWT secret must be filled on the droplet. No server has been provisioned or deployed by this work. The hostname readiness probe did not return a verified API response during this session.
+
+For GitHub release builds, set the staging environment variable `VITE_API_BASE_URL=https://bg-api.lightsailvr.com/api/v1` and `SALP_PAGE_ID=beastgames-s3contestants`; optionally set `VITE_GA_MEASUREMENT_ID`. The release workflow validates the packaged paths/configuration.
+
+Build using `npm run build:salp:staging`; the resulting ZIP uses `beastgames-s3contestants/` as its root. Local builds still use `beastgames/`, localhost API port 3000, and the isolated database port 5433. To preview a staging ZIP locally, use `npm run preview:salp -- staging`; the remote backend must explicitly allow that localhost origin for this test (do not confuse this with local API testing).
+
+## DigitalOcean recommendation
+
+For **staging and the first deployment of this code**, use an **Ubuntu 24.04 LTS Basic Droplet with 2 vCPUs and 4 GiB RAM**, Docker Compose, and Nginx/TLS. Keep uploaded images in `/opt/beastgames/uploads` and back them up. Build images in CI, not on the small droplet. The Basic Regular 2-vCPU/4-GiB plan is currently listed at **$24/month**; confirm the selected region/CPU tier at checkout. [DigitalOcean Droplet pricing](https://www.digitalocean.com/pricing/droplets).
+
+Pair it with **Managed PostgreSQL, 1 vCPU / 2 GiB RAM**, in the same region/VPC. The single-node Basic Regular plan is listed at **$30.45/month**, making the indicative staging compute/database total **$54.45/month**, before backups, additional storage, tax, or other services. This is a starting size, not proven launch capacity. [Managed PostgreSQL pricing](https://www.digitalocean.com/pricing/managed-databases).
+
+For the public event, choose capacity after realistic load testing and add a database standby if availability warrants it; a single app droplet remains a failure point. Consider a dedicated-CPU droplet when sustained CPU contention appears, and move uploads to Spaces plus distributed rate limiting before adding multiple app replicas. Do not infer an event concurrency guarantee from the local ten-request benchmark.
+
+I recommend a Droplet for the current implementation because it deliberately persists uploads on disk. App Platform's local filesystem is ephemeral and is unsuitable for these uploads as written; App Platform becomes a good lower-maintenance option after uploads are moved to Spaces/object storage. [App Platform storage documentation](https://docs.digitalocean.com/products/app-platform/how-to/store-data/).
+
+## Automated rehearsal and container checks
+
+`npm run db:rehearse` only accepts a loopback database whose name ends in `_local`. It clones that database into a timestamped rehearsal DB, removes migration history **only in the clone**, checks schema equivalence, marks the baseline applied, runs deploy/status, verifies unchanged rows and reconciled counters, and drops the clone. Stop other local app servers first so PostgreSQL can clone it. This verifies the baseline procedure, not the unknown schema of the real existing server.
+
+CI now invokes this rehearsal and `npm run test:docker` on Linux/PostgreSQL 16. The Docker smoke test builds the actual image, runs its bundled Prisma migration CLI, starts it as the image's non-root user with writable uploads, and checks readiness, v1/legacy responses, admin login, image upload, and retrieval. It does not publish or deploy anything. Docker is unavailable on this Mac, so the container test requires a GitHub Actions run or another Linux Docker host.

@@ -4,7 +4,14 @@ export function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const origin = request.headers.get('origin');
   const isPublic = publicPaths.test(path);
-  const allowed = allowedOrigin(origin, request.nextUrl.origin, isPublic ? (process.env.CORS_ALLOWED_ORIGINS || '') : '');
+  // Next may normalize the internal URL to localhost. Host is the browser-facing
+  // authority; Nginx overwrites Host and X-Forwarded-Proto in the supplied config.
+  const host = request.headers.get('host') || request.nextUrl.host;
+  const forwardedProtocol = request.headers.get('x-forwarded-proto');
+  const protocol = forwardedProtocol === 'http' || forwardedProtocol === 'https'
+    ? forwardedProtocol : request.nextUrl.protocol.replace(':', '');
+  const externalOrigin = new URL(`${protocol}://${host}`).origin;
+  const allowed = allowedOrigin(origin, externalOrigin, isPublic ? (process.env.CORS_ALLOWED_ORIGINS || '') : '');
   const headers = new Headers({'Vary':'Origin', 'X-API-Version':'1', 'Cache-Control':'no-store'});
   if (origin && allowed && isPublic) {
     headers.set('Access-Control-Allow-Origin', origin);

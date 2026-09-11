@@ -39,6 +39,8 @@
     "frontend",
     "vite.config.ts",
     "tests",
-    "playwright.config.ts"
+    "playwright.config.ts",
+    ".local",
+    "artifacts"
   ]
 }

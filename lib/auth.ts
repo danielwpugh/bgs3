@@ -16,7 +16,9 @@ export function createToken(session: AdminSession): string {
 
 export function verifyToken(token: string): AdminSession | null {
   try {
-    return jwt.verify(token, jwtSecret()) as AdminSession;
+    const payload = jwt.verify(token, jwtSecret());
+    if (typeof payload !== 'object' || !Number.isInteger(payload.id) || payload.id < 1 || typeof payload.username !== 'string') return null;
+    return {id:payload.id,username:payload.username};
   } catch {
     return null;
   }

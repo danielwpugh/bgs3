@@ -7,7 +7,7 @@ import path from 'node:path';
 export default defineConfig(({mode, command}) => {
   const env = loadEnv(mode, path.resolve('environments'), 'VITE_');
   const salp = process.env.SALP_BUILD === '1';
-  const pageId = process.env.SALP_PAGE_ID || 'beastgames';
+  const pageId = process.env.SALP_PAGE_ID || env.VITE_SALP_PAGE_ID || 'beastgames';
   if (!/^[a-z0-9-]+$/.test(pageId)) throw new Error('Invalid SALP_PAGE_ID');
   const apiBaseUrl = process.env.VITE_API_BASE_URL || env.VITE_API_BASE_URL || (mode === 'development' || command === 'serve' ? 'http://localhost:3000/api/v1' : '');
   const url = new URL(apiBaseUrl);

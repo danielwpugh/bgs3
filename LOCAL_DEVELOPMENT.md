@@ -4,6 +4,7 @@ Follow the quick start in README first. Backend environment variables come from 
 
 | Workflow | Command | Purpose |
 | --- | --- | --- |
+| Saved local stack | `npm run local` | Start PostgreSQL, API/admin, and frontend together; Ctrl-C stops all |
 | Both dev servers | `npm run dev` | React hot reload on 5173; Next API/admin on 3000 |
 | API/admin only | `npm run dev:backend` | Backend development |
 | Static frontend only | `npm run dev:frontend` | Can target a separately running backend |
@@ -47,3 +48,7 @@ The new ZIP cannot run against the original pre-v1 backend. Deploy the bridge ba
 - Match `CORS_ALLOWED_ORIGINS` to the exact frontend origin (scheme, host, port). No paths, wildcards, or `null` origins.
 - If a different backend is selected during local testing, clear site storage to discard an old preview token.
 - User-facing votes are not automatically retried after timeouts: a response could be lost after the vote committed.
+
+## Local migration rehearsal
+
+Stop the app servers and leave only the local database running. `npm run db:rehearse` copies the fixture database, simulates an existing schema without migration history, baselines it, checks row/counter preservation, and deletes the temporary copy. It never drops or rewrites the source fixture database.

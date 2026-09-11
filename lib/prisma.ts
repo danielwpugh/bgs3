@@ -7,16 +7,10 @@ const globalForPrisma = globalThis as unknown as {
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
+    // Let the schema resolve DATABASE_URL at query time; builds need no database credentials.
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-    // Optimize connection pooling for high throughput
-    datasources: {
-      db: {
-        url: process.env.DATABASE_URL,
-      },
-    },
   });
 
-// Optimize connection pool for high throughput (thousands of votes per second)
-// These settings help handle concurrent connections efficiently
+// Reuse the client across Next development hot reloads.
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 

@@ -1,5 +1,5 @@
 name: Validate
-on: [push, pull_request]
+on: [push, pull_request, workflow_dispatch]
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -22,8 +22,11 @@ jobs:
         with: {node-version: 22, cache: npm}
       - run: npm ci
       - run: npm run db:generate && npm run db:deploy && npm run db:seed:test
+      - run: npm run db:rehearse
       - run: npm run typecheck && npm test
       - run: npm run build:backend && npm run build:salp
+      - run: node scripts/verify-salp.mjs local
+      - run: npm run test:docker
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
       - run: |

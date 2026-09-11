@@ -19,3 +19,14 @@ test('version bridge preserves queries and rejects unsupported versions and admi
   assert.equal(middleware(new NextRequest('http://localhost:3000/api/v2/players')).status,426);
   assert.equal(middleware(new NextRequest('http://localhost:3000/api/v1/admin/login')).status,404);
 });
+
+
+test('admin origin uses browser-facing Host and proxy scheme, without allowing Amazon admin requests', async () => {
+  const {NextRequest}=await import('next/server');
+  const {middleware}=await import('../middleware');
+  const local=middleware(new NextRequest('http://localhost:3000/api/admin/login',{headers:{host:'127.0.0.1:3000',origin:'http://127.0.0.1:3000'}}));
+  assert.equal(local.status,200);
+  const proxy=(origin: string)=>middleware(new NextRequest('http://localhost:3000/api/admin/login',{headers:{host:'bg-api.lightsailvr.com','x-forwarded-proto':'https',origin}}));
+  assert.equal(proxy('https://bg-api.lightsailvr.com').status,200);
+  assert.equal(proxy('https://www.amazon.com').status,403);
+});

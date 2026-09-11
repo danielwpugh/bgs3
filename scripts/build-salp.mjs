@@ -1,11 +1,13 @@
-import { build } from 'vite';
+import { build, loadEnv } from 'vite';
 import './optimize-assets.mjs';
 import { mkdir, readFile, writeFile, cp, rm, readdir } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 const mode = process.argv[2] || 'local';
 if (!['local','staging','production'].includes(mode)) throw new Error('Environment must be local, staging, or production');
-const pageId = process.env.SALP_PAGE_ID || 'beastgames';
+const env = loadEnv(mode === 'local' ? 'development' : mode, resolve('environments'), 'VITE_');
+const pageId = process.env.SALP_PAGE_ID || env.VITE_SALP_PAGE_ID || 'beastgames';
+process.env.SALP_PAGE_ID = pageId;
 if (!/^[a-z0-9-]+$/.test(pageId)) throw new Error('Invalid SALP_PAGE_ID');
 process.env.SALP_BUILD = '1';
 await build({mode: mode === 'local' ? 'development' : mode});
