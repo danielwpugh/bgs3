@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import { prisma } from './prisma';
 import bcrypt from 'bcryptjs';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-change-in-production';
+import { jwtSecret } from '@/lib/secret';
 
 export interface AdminSession {
   id: number;
@@ -11,12 +11,12 @@ export interface AdminSession {
 }
 
 export function createToken(session: AdminSession): string {
-  return jwt.sign(session, JWT_SECRET, { expiresIn: '7d' });
+  return jwt.sign(session, jwtSecret(), { expiresIn: '7d' });
 }
 
 export function verifyToken(token: string): AdminSession | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as AdminSession;
+    return jwt.verify(token, jwtSecret()) as AdminSession;
   } catch {
     return null;
   }

@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "node scripts/dev.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -14,7 +14,27 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:backfill-votes": "tsx prisma/backfill-vote-counts.ts",
     "db:check": "tsx check-db-schema.ts",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "dev:backend": "next dev -H 127.0.0.1",
+    "dev:frontend": "vite --mode development",
+    "build:backend": "prisma generate && next build",
+    "build:frontend": "vite build --mode development",
+    "build:frontend:staging": "vite build --mode staging",
+    "build:frontend:production": "vite build --mode production",
+    "build:salp": "node scripts/build-salp.mjs",
+    "build:salp:staging": "node scripts/build-salp.mjs staging",
+    "build:salp:production": "node scripts/build-salp.mjs production",
+    "preview:frontend": "vite preview",
+    "db:local": "docker compose up -d --wait db",
+    "db:seed:test": "node --env-file-if-exists=.env --import tsx scripts/seed-test.ts",
+    "typecheck": "tsc --noEmit && tsc -p frontend/tsconfig.json",
+    "test": "node --import tsx --test tests/*.test.ts",
+    "test:e2e": "node --env-file-if-exists=.env node_modules/@playwright/test/cli.js test",
+    "test:performance": "node scripts/performance.mjs",
+    "deploy:backend": "bash scripts/deploy-backend.sh",
+    "db:local:native": "node scripts/local-postgres.mjs",
+    "preview:salp": "node scripts/preview-salp.mjs",
+    "test:page-performance": "node scripts/page-performance.mjs"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^7.1.0",
@@ -22,30 +42,40 @@
     "@fortawesome/react-fontawesome": "^3.1.1",
     "@prisma/client": "^5.7.1",
     "bcryptjs": "^2.4.3",
-    "csv-parse": "^5.5.3",
+    "csv-parse": "^7.0.2",
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.1",
-    "next": "^14.0.4",
+    "next": "^15.5.25",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "recharts": "^3.5.1",
-    "sharp": "^0.33.1",
+    "sharp": "^0.35.4",
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.5",
     "@types/multer": "^1.4.11",
     "@types/node": "^20.10.6",
     "@types/react": "^18.2.46",
     "@types/react-dom": "^18.2.18",
+    "@vitejs/plugin-react": "^4.7.0",
     "autoprefixer": "^10.4.16",
+    "embedded-postgres": "^18.4.0-beta.17",
     "eslint": "^8.56.0",
-    "eslint-config-next": "^14.0.4",
-    "postcss": "^8.4.32",
+    "eslint-config-next": "^15.5.25",
+    "postcss": "^8.5.28",
     "prisma": "^5.7.1",
     "tailwindcss": "^3.4.0",
-    "tsx": "^4.7.0",
-    "typescript": "^5.3.3"
+    "tsx": "^4.23.13",
+    "typescript": "^5.3.3",
+    "vite": "^6.4.3"
+  },
+  "engines": {
+    "node": ">=22 <24"
+  },
+  "overrides": {
+    "postcss": "$postcss"
   }
 }

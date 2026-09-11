@@ -1,5 +1,6 @@
 'use client';
 
+import { apiFetch, assetUrl } from '@/lib/public-client';
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
@@ -17,14 +18,15 @@ export default function FrontendLoginPage() {
 
   async function checkAuth() {
     try {
-      const res = await fetch('/api/frontend-auth/verify', {
+      const res = await apiFetch('/api/frontend-auth/verify', {
         credentials: 'include', // Important: include cookies
         cache: 'no-store',
       });
       const data = await res.json();
       if (data.authenticated) {
         // Already authenticated, redirect to home or return URL
-        const returnUrl = searchParams.get('returnUrl') || '/';
+        const requested = searchParams.get('returnUrl') || '/';
+      const returnUrl = requested.startsWith('/') && !requested.startsWith('//') && !requested.includes('\\') ? requested : '/';
         router.push(returnUrl);
       }
     } catch (error) {
@@ -38,7 +40,7 @@ export default function FrontendLoginPage() {
     setLoading(true);
 
     try {
-      const res = await fetch('/api/frontend-auth/login', {
+      const res = await apiFetch('/api/frontend-auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password }),
@@ -51,31 +53,15 @@ export default function FrontendLoginPage() {
         throw new Error(data.error || 'Invalid password');
       }
 
-      // Update cache immediately with authenticated state
-      // This ensures the guard will see authenticated state even before API check
-      if (typeof window !== 'undefined') {
-        const cache = {
-          authenticated: true,
-          enabled: true,
-          timestamp: Date.now(),
-        };
-        localStorage.setItem('frontend-auth-cache', JSON.stringify(cache));
-      }
-
-      // Small delay to ensure cookie is processed by browser
-      await new Promise(resolve => setTimeout(resolve, 300));
-
       // Redirect to home or return URL using router (client-side navigation)
       // This preserves the cookie and cache state
-      const returnUrl = searchParams.get('returnUrl') || '/';
+      const requested = searchParams.get('returnUrl') || '/';
+      const returnUrl = requested.startsWith('/') && !requested.startsWith('//') && !requested.includes('\\') ? requested : '/';
       router.push(returnUrl);
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to login');
       setLoading(false);
-      // Clear cache on error
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('frontend-auth-cache');
-      }
+
     }
   }
 

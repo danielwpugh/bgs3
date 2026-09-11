@@ -1,5 +1,6 @@
 'use client';
 
+import { apiFetch, assetUrl } from '@/lib/public-client';
 import { useEffect } from 'react';
 
 export default function VisitorTracker() {
@@ -20,7 +21,7 @@ export default function VisitorTracker() {
       }
 
       // Call the tracking API
-      fetch('/api/track-visitor', {
+      apiFetch('/api/track-visitor', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

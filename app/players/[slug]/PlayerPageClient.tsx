@@ -1,5 +1,6 @@
 'use client';
 
+import { apiFetch, assetUrl, voterId } from '@/lib/public-client';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
@@ -61,7 +62,7 @@ export default function PlayerPageClient({
   async function fetchPlayer(nextSlug: string) {
     setLoading(true);
     try {
-      const res = await fetch(`/api/players/${nextSlug}`);
+      const res = await apiFetch(`/api/players/${nextSlug}`);
       if (!res.ok) throw new Error('Player not found');
       const data = await res.json();
       setPlayer(data.player);
@@ -94,9 +95,9 @@ export default function PlayerPageClient({
 
     try {
       const storedVoterId =
-        typeof window !== 'undefined' ? window.localStorage.getItem(voterIdStorageKey) : null;
+        voterId();
 
-      const res = await fetch('/api/votes', {
+      const res = await apiFetch('/api/votes', {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -110,7 +111,7 @@ export default function PlayerPageClient({
       if (!res.ok) throw new Error(data.error || 'Failed to vote');
 
       if (data?.voterId && typeof window !== 'undefined') {
-        window.localStorage.setItem(voterIdStorageKey, String(data.voterId));
+        try { window.localStorage.setItem(voterIdStorageKey, String(data.voterId)); } catch {}
       }
 
       setUpvoteCount(data.upvoteCount);

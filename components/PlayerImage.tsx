@@ -1,5 +1,6 @@
 "use client";
 
+import { mediaUrl } from '@/lib/public-client';
 import React, { useEffect, useMemo, useRef } from "react";
 
 type PlayerImageProps = Omit<
@@ -102,8 +103,8 @@ export function PlayerImage({
   alt,
   placeholder,
   context,
-  logMissingSrc = true,
-  diagnoseFetch = true,
+  logMissingSrc = false,
+  diagnoseFetch = false,
   ...imgProps
 }: PlayerImageProps) {
   const missingKey = useMemo(() => {
@@ -134,8 +135,10 @@ export function PlayerImage({
 
   return (
     <img
+      loading="lazy"
+      decoding="async"
       {...imgProps}
-      src={src}
+      src={mediaUrl(src) ?? undefined}
       alt={alt}
       onError={(e) => {
         const img = e.currentTarget;

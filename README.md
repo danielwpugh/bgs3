@@ -1,163 +1,105 @@
-# Beast Games
+# Beast Games: SALP frontend + DigitalOcean backend
 
-A production-ready voting/polling platform and player directory ("Beastdex") for a TV show with ~200 players.
+The public UI is a static React/Vite application packaged for Amazon SALP. The existing Next.js application runs the API, PostgreSQL access, image uploads, and admin interface on DigitalOcean. No iframe or frontend Node server is needed on SALP.
 
-## Features
+## Pause / resume checkpoint — September 10, 2026
 
-- **Public Pages:**
-  - Landing page with overview
-  - Beastdex: Grid view of all players with filtering and search
-  - Player detail pages with voting functionality
-  - Real-time statistics dashboard
+Implementation is saved locally and **has not been committed or deployed**. See [HANDOFF.md](HANDOFF.md) for the exact validation status and remaining work. The local database retains roughly one million fixture votes under `.local/postgres`; no production database was touched. The latest local-only SALP ZIP is under `artifacts/local/`.
 
-- **Admin Panel:**
-  - Player management (CRUD operations)
-  - CSV import/export for bulk player management
-  - Image upload with automatic resizing
-  - Password-based authentication  
-  - Settings management
+To resume, start `npm run db:local:native` in one terminal, then `npm run dev` in another. No reseeding is needed unless you want to replace the fixtures. For build verification, stop dev servers and follow the validation commands below.
 
-- **Voting System:**
-  - Rate limiting to prevent spam
-  - Session-based vote tracking
-  - Real-time vote counts
-  - Elimination status handling 
+Next priorities: finish container/CI smoke testing, check final mobile loading on actual SALP, configure the real staging API/origins/page ID, and rehearse the existing-database baseline on a staging clone before any deployment.
 
-## Tech Stack
+## Local quick start
 
-- **Framework:** Next.js 14 (App Router)
-- **Language:** TypeScript
-- **Styling:** Tailwind CSS + CSS Variables
-- **Database:** PostgreSQL with Prisma ORM
-- **Image Processing:** Sharp
-- **Authentication:** JWT-based sessions
+Use Node 22 LTS and npm. From this repository:
 
-## Analytics (GA4)
-
-- **Measurement ID**: set `NEXT_PUBLIC_GA_MEASUREMENT_ID` to enable Google Analytics.
-- **SPA pageviews**: tracked on App Router route changes.
-- **Iframe support**: sets `cookie_flags: 'SameSite=None;Secure'` to improve cookie behavior when embedded.
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 20+ 
-- PostgreSQL 14+
-- npm or yarn
-
-### Quick Start
-
-For detailed local development setup instructions for **macOS** and **Ubuntu**, see [LOCAL_DEVELOPMENT.md](./LOCAL_DEVELOPMENT.md).
-
-**Quick setup:**
 ```bash
-# 1. Install dependencies
-npm install
-
-# 2. Set up environment variables
-cp .env.example .env
-# Edit .env with your database credentials
-
-# 3. Set up database
+npm ci
+cp .env.example .env  # only on first setup; keep any existing credentials
 npm run db:generate
-npm run db:migrate
-npm run db:seed  # Save the generated password!
+npm run db:local:native
+```
 
-# 4. Start development server
+Leave that terminal running. This starts an isolated PostgreSQL instance bound to `127.0.0.1:5433`, retaining data under `.local/postgres`. Docker users can instead run `npm run db:local` (PostgreSQL 16). Do not run both on the same port.
+
+In another terminal:
+
+```bash
+npm run db:deploy
+npm run db:seed:test
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+- Public frontend: http://127.0.0.1:5173
+- Backend/admin: http://127.0.0.1:3000/admin
+- API readiness: http://127.0.0.1:3000/api/v1/health
+- Fixture admin: `local_admin` / `local-beastgames-admin`
 
-**Important:** The seed script will generate a random password for the admin user `danny_lightsailvr`. Save this password and change it via `/admin/settings` after first login.
+Fixtures create 200 players and 100,000 votes. They refuse remote databases, database names not ending in `_local`, and databases containing non-fixture players. Re-running replaces **all fixture players/votes/settings** and resets the local admin password. For heavier testing: `TEST_VOTES=1000000 npm run db:seed:test`. Portraits/uploads from the previous server are not included in this repository.
 
-## Available Scripts
+## Build and preview the actual SALP package
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run start` - Start production server
-- `npm run lint` - Run ESLint
-- `npm run db:generate` - Generate Prisma client
-- `npm run db:push` - Push schema changes to database
-- `npm run db:migrate` - Run database migrations
-- `npm run db:deploy` - Deploy migrations (production)
-- `npm run db:seed` - Seed database with initial data
-- `npm run db:studio` - Open Prisma Studio
-
-## Project Structure
-
-```
-beastgames/
-├── app/                    # Next.js App Router pages
-│   ├── api/               # API routes
-│   ├── admin/             # Admin pages
-│   ├── beastdex/          # Player directory
-│   ├── players/           # Player detail pages
-│   ├── stats/             # Statistics page
-│   └── globals.css        # Global styles
-├── components/            # React components
-├── lib/                   # Utility functions
-│   ├── auth.ts           # Authentication helpers
-│   ├── prisma.ts         # Prisma client
-│   └── utils.ts          # General utilities
-├── prisma/                # Prisma schema and migrations
-│   ├── schema.prisma     # Database schema
-│   └── seed.ts           # Database seed script
-└── uploads/               # Uploaded images (gitignored)
+```bash
+npm run build:salp
+npm run preview:salp
 ```
 
-## Database Schema
+Open http://127.0.0.1:4173. This preview reconstructs the page from the packaged `head.html` and `body.html` and serves the actual SALP asset paths. Add `?client=mobile` or `?client=living_room` to test those templates. Player navigation uses `#/players/<slug>`, so reloads do not need server rewrites.
 
-### Player
-- Basic info: name, slug, title, team, bio
-- Image URL for player photos
-- Elimination status
-- Flexible `extraFields` JSON for future expansion
+The local ZIP is under `artifacts/local/`. **It points to localhost and is only for local testing.** For a SALP upload, build against a reachable HTTPS API:
 
-### Vote
-- Links to player
-- Timestamp for time-based analytics
-- Optional metadata JSON
+```bash
+cp environments/.env.staging.example environments/.env.staging
+# Edit VITE_API_BASE_URL to the real staging API, ending in /api/v1
+npm run build:salp:staging
+```
 
-### AdminUser
-- Username and hashed password (bcrypt)
+Use `.env.production` and `npm run build:salp:production` for production. These files live in `environments/`, separate from the backend `.env`. Only public API configuration belongs in them. Builds reject missing URLs, localhost, and insecure HTTP outside local mode. `SALP_PAGE_ID` defaults to `beastgames`; change it only to the page ID assigned in SALP.
 
-## API Routes
+```text
+artifacts/staging/beastgames_staging_YYYY-MM-DD.zip
+└── beastgames/
+    ├── desktop/en_US/{head,body}.html
+    ├── mobile/en_US/{head,body}.html
+    ├── living_room/en_US/{head,body}.html
+    └── gp/video/static/sl/lp/beastgames/
+        ├── css/
+        ├── js/
+        └── images/
+```
 
-### Public
-- `GET /api/players` - List all players
-- `GET /api/players/[slug]` - Get player by slug
-- `POST /api/votes` - Submit a vote
-- `GET /api/stats` - Get statistics
+The three templates share a responsive app. UI styles are scoped to `#beastgames-root`. Hashed JS/CSS names prevent stale chunk reuse. `js/config.js` contains the public environment configuration; templates load it before the app. The ZIP contains no admin code, database credentials, or API server.
 
-### Admin (Protected)
-- `POST /api/admin/login` - Admin login
-- `GET /api/admin/me` - Get current admin session
-- `POST /api/admin/change-password` - Change admin password
-- `GET /api/admin/players` - List players (admin)
-- `POST /api/admin/players` - Create player
-- `PUT /api/admin/players/[id]` - Update player
-- `DELETE /api/admin/players/[id]` - Delete player
-- `POST /api/admin/players/[id]/toggle-eliminated` - Toggle eliminated status
-- `POST /api/admin/upload-image` - Upload player image
-- `POST /api/admin/import-csv` - Import players from CSV
-- `GET /api/admin/template.csv` - Download CSV template
+## Validation
 
-## Deployment
+```bash
+npm run typecheck
+npm test
+npm run build:backend
+npm run build:salp
+npm run test:e2e
+```
 
-See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed deployment instructions to DigitalOcean with Nginx and HTTPS.
+Browser tests use Google Chrome locally and Playwright Chromium in CI. The tests start the production API and SALP preview if those ports are free; stop development servers first. Use **only the local fixture database**: tests submit votes and temporarily change preview-password settings. CI provisions a PostgreSQL 16 service and builds the ZIP as an artifact.
 
-## Security Features
+For performance tests, start `npm start` and `npm run preview:salp`, then:
 
-- Password hashing with bcrypt
-- JWT-based session management
-- Rate limiting on voting endpoint
-- Input validation with Zod
-- Secure cookie settings
-- SQL injection protection via Prisma
+```bash
+npm run test:performance
+npm run test:page-performance
+```
 
-## License
+See [PERFORMANCE_OPTIMIZATIONS.md](PERFORMANCE_OPTIMIZATIONS.md) for methodology, results, thresholds, and remaining limitations. See [DEPLOYMENT.md](DEPLOYMENT.md) for the first migration of an existing database, image releases, rollback, and staggered frontend/backend updates. [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md) explains the development and testing matrix.
 
-ISC
+## Source layout
 
+- `frontend/`: static entry point and hash-navigation adapters; lazily loads existing public screens.
+- `app/`, `components/`: shared public screens plus Next-only admin and route handlers.
+- `lib/public-client.ts`: explicit API, asset, and backend media URL handling.
+- `app/api/`: legacy `/api/*` handlers; public `/api/v1/*` aliases are handled in middleware.
+- `prisma/migrations/`: committed schema baseline for new databases.
+- `scripts/`: packaging, SALP preview, fixtures, load tests, deployment.
+- `deploy/`: backend Docker image, Compose configuration, Nginx example.
+
+The older unversioned API and Next public pages remain available during transition. New public clients use API v1. Admin stays same-origin on the backend.

@@ -32,4 +32,11 @@ build
 coverage
 
 # Uploads (handled separately on server)
-uploads/
+/uploads/
+/artifacts/
+/test-results/
+/playwright-report/
+*.tsbuildinfo
+!environments/.env.*.example
+
+/.local/

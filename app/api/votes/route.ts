@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { publicAuthError } from '@/lib/public-auth';
 import { prisma } from '@/lib/prisma';
 import { checkRateLimit, getPacificDateKey } from '@/lib/utils';
 import { z } from 'zod';
@@ -15,6 +16,7 @@ const voteSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    const denied = await publicAuthError(request); if (denied) return denied;
     const isProd = process.env.NODE_ENV === 'production';
     const cookieSameSite: 'lax' | 'none' = isProd ? 'none' : 'lax';
     const cookieSecure = isProd;
@@ -75,63 +77,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check daily vote limit setting
-    if (settings?.dailyVoteLimitEnabled) {
-      // Check if this voter cookie has already voted for this player today (Pacific time)
-      const dayPacific = getPacificDateKey(new Date());
-
-      const existingVote = await prisma.vote.findFirst({
-        // NOTE: The Prisma client is generated from the current schema at build/deploy time.
-        // Some dev environments can temporarily show stale types after schema changes.
-        where: ({
-          playerId: player.id,
-          voterId: voterId,
-          dayPacific: dayPacific,
-        } as any),
-      });
-
-      if (existingVote) {
-        return NextResponse.json(
-          { error: 'You have already voted for this player today. Each player can only receive one vote per day.' },
-          { status: 400 }
-        );
-      }
-    }
-
     // Use transaction for atomic vote creation and count update
     // This ensures data consistency and improves performance by avoiding separate COUNT queries
     const result = await prisma.$transaction(async (tx) => {
       const dayPacific = getPacificDateKey(new Date());
-      // Create vote record
-      let vote;
-      try {
-        vote = await tx.vote.create({
-          data: ({
-            playerId: player.id,
-            type: data.type,
-            sessionId: sessionId,
-            voterId: voterId,
-            dayPacific: dayPacific,
-          } as any),
-        });
-      } catch (error: any) {
-        // If type column doesn't exist, create vote without type
-        if (error?.message?.includes('Unknown argument `type`') || 
-            error?.message?.includes('Unknown arg `type`') || 
-            error?.code === 'P2009' ||
-            error?.name === 'PrismaClientValidationError') {
-          vote = await tx.vote.create({
-            data: ({
-              playerId: player.id,
-              sessionId: sessionId,
-              voterId: voterId,
-              dayPacific: dayPacific,
-            } as any),
-          });
-        } else {
-          throw error;
-        }
+      // Serialize votes for the same browser/player/day; no uniqueness migration required.
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`${player.id}:${voterId}:${dayPacific}`}, 0))`;
+      if (settings?.dailyVoteLimitEnabled) {
+        const existing = await tx.vote.findFirst({where:{playerId:player.id,voterId,dayPacific}});
+        if (existing) throw new Error('DAILY_LIMIT');
       }
+      const vote = await tx.vote.create({data:{playerId:player.id,type:data.type,sessionId,voterId,dayPacific}});
 
       // Atomically update vote counts in Player table
       // This is much faster than COUNT queries and ensures consistency
@@ -167,7 +123,7 @@ export async function POST(request: NextRequest) {
       success: true,
       upvoteCount: result.upvoteCount,
       downvoteCount: result.downvoteCount,
-      message: 'Vote recorded! You can vote for this player again tomorrow.',
+      message: settings?.dailyVoteLimitEnabled ? 'Vote recorded! You can vote for this player again tomorrow.' : 'Vote recorded!',
       voterId,
     });
 
@@ -190,6 +146,7 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error) {
+    if (error instanceof Error && error.message === 'DAILY_LIMIT') return NextResponse.json({error:'You have already voted for this player today.'}, {status:400});
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Invalid input', details: error.errors },

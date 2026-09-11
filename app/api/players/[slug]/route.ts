@@ -1,21 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { publicAuthError } from '@/lib/public-auth';
 import { prisma } from '@/lib/prisma';
 import { resolvePlayerImageUrl } from '@/lib/utils';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
+    const denied = await publicAuthError(request); if (denied) return denied;
     // Use denormalized vote counts for performance
     const player = await prisma.player.findUnique({
-      where: { slug: params.slug },
-      include: {
-        votes: {
-          orderBy: { createdAt: 'desc' },
-          take: 10,
-        },
-      },
+      where: { slug: (await params).slug },
+
     });
 
     if (!player) {
@@ -35,6 +32,7 @@ export async function GET(
     return NextResponse.json({ 
       player: {
         ...player,
+        groupNumber: undefined,
         imageUrl: resolvedImageUrl,
       },
       upvoteCount,
@@ -43,7 +41,7 @@ export async function GET(
   } catch (error) {
     console.error('Get player error:', error);
     return NextResponse.json(
-      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }

@@ -227,3 +227,6 @@ svg[data-icon] path {
   display: inline-block;
 }
 
+
+.beastgames-outline { background-image: var(--beast-outline-desktop); }
+@media (max-width: 767px) { .beastgames-outline { background-image: var(--beast-outline-mobile); } }

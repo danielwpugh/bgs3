@@ -44,9 +44,9 @@ async function getPlayerForPage(slug: string): Promise<{ player: PlayerClientSha
 }
 
 export async function generateMetadata(
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ): Promise<Metadata> {
-  const data = await getPlayerForPage(params.slug);
+  const data = await getPlayerForPage((await params).slug);
 
   if (!data) {
     return {
@@ -96,9 +96,9 @@ export async function generateMetadata(
 export default async function PlayerPage({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
-  const data = await getPlayerForPage(params.slug);
+  const data = await getPlayerForPage((await params).slug);
   if (!data) notFound();
 
   return <PlayerPageClient initialPlayer={data.player} initialUpvoteCount={data.upvoteCount} />;

@@ -1,5 +1,6 @@
 'use client'
 
+import { assetUrl } from '@/lib/public-client';
 import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -72,7 +73,7 @@ export default function WelcomeModal() {
           {/* Desktop */}
           <div className="hidden md:block">
             <Image
-              src="/images/welcome-desktop.png"
+              src={assetUrl("/images/welcome-desktop.webp")}
               alt="Welcome"
               width={1600}
               height={900}
@@ -84,7 +85,7 @@ export default function WelcomeModal() {
           {/* Mobile */}
           <div className="block md:hidden">
             <Image
-              src="/images/welcome-mobile.png"
+              src={assetUrl("/images/welcome-mobile.webp")}
               alt="Welcome"
               width={900}
               height={1600}

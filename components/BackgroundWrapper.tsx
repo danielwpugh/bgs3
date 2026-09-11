@@ -1,5 +1,7 @@
 'use client';
 
+import type { CSSProperties } from 'react';
+import { assetUrl } from '@/lib/public-client';
 import { usePathname } from 'next/navigation';
 import WelcomeModal from '@/components/WelcomeModal'
 
@@ -19,7 +21,7 @@ export default function BackgroundWrapper({ children }: { children: React.ReactN
       <div
         className="fixed inset-0 w-full z-0 beastgames-main-bg beastgames-bg-mobile-opacity"
         style={{
-          backgroundImage: `url(/images/bg.jpg)`,
+          backgroundImage: `url(${assetUrl('/images/bg.webp')})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center center',
           backgroundRepeat: 'no-repeat',
@@ -30,15 +32,16 @@ export default function BackgroundWrapper({ children }: { children: React.ReactN
       </div>
       <div className="relative z-10 min-h-screen">
         <div
-          className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8"
+          className="beastgames-outline mx-auto max-w-7xl px-4 sm:px-6 lg:px-8"
           style={{
-            backgroundImage: 'url(/images/pink-outline.png)',
+            '--beast-outline-desktop': `url(${assetUrl('/images/pink-outline.webp')})`,
+            '--beast-outline-mobile': `url(${assetUrl('/images/pink-outline-mobile.webp')})`,
             backgroundPosition: 'top center',
             backgroundRepeat: 'no-repeat',
             backgroundSize: '100% auto',
             backgroundAttachment: 'scroll',
             marginTop: '20px',
-          }}
+          } as CSSProperties}
         >
           {children}
         </div>

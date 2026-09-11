@@ -1,5 +1,6 @@
  'use client';
 
+import { apiFetch, assetUrl } from '@/lib/public-client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -43,6 +44,7 @@ interface Stats {
 
 export default function Home() {
   const [stats, setStats] = useState<Stats | null>(null);
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
   function formatVotesToday(count: number) {
@@ -60,12 +62,16 @@ export default function Home() {
   }, []);
 
   async function fetchStats() {
+    setError('');
+    setLoading(true);
     try {
-      const res = await fetch('/api/stats?top=5&days=30');
+      const res = await apiFetch('/api/stats?top=5&days=30');
+      if (!res.ok) throw new Error('Unable to load statistics. Please try again.');
       const data = await res.json();
+      if (!Array.isArray(data.topPlayersByUpvotes) || !data.teamVotes) throw new Error('Unexpected API response');
       setStats(data);
     } catch (error) {
-      console.error('Failed to fetch stats:', error);
+      setError(error instanceof Error ? error.message : 'Unable to load statistics');
     } finally {
       setLoading(false);
     }
@@ -85,11 +91,12 @@ export default function Home() {
   return (
     <div className="min-h-screen text-fg-main">
       <div className="container mx-auto px-4 py-12 md:py-16">
+        {error && <p role="alert">{error} <button onClick={fetchStats}>Retry</button></p>}
         {/* Header + Summary */}
         <div className="flex flex-col md:items-center lg:flex-row lg:items-center lg:justify-between gap-8 md:gap-12 mb-6 md:mb-8">
           <div className="w-full lg:w-1/3 md:flex md:justify-center lg:justify-start text-center lg:text-left">
             <img
-              src="/images/logo.png"
+              src={assetUrl("/images/logo.webp")}
               alt="Beast Games"
               className="h-[5.75rem] md:h-[7.1875rem] object-contain mx-auto lg:mx-0"
             />
@@ -106,7 +113,7 @@ export default function Home() {
                   style={{ backgroundColor: 'rgba(89, 88, 88, 0.3)', border: '1px solid rgba(255, 255, 255, 0.2)' }}
                 >
                   <div className="text-2xl md:text-4xl font-black text-white">
-                    {loading ? '—' : activePlayers.toLocaleString()}
+                    {loading || error ? '—' : activePlayers.toLocaleString()}
                   </div>
                 </div>
               </div>
@@ -119,7 +126,7 @@ export default function Home() {
                   style={{ backgroundColor: 'rgba(89, 88, 88, 0.3)', border: '1px solid rgba(255, 255, 255, 0.2)' }}
                 >
                   <div className="text-2xl md:text-4xl font-black text-white">
-                    {loading ? '—' : formatVotesToday(votesToday)}
+                    {loading || error ? '—' : formatVotesToday(votesToday)}
                   </div>
                 </div>
               </div>
@@ -132,7 +139,7 @@ export default function Home() {
                   style={{ backgroundColor: 'rgba(89, 88, 88, 0.3)', border: '1px solid rgba(255, 255, 255, 0.2)' }}
                 >
                   <div className="text-xl md:text-3xl font-black text-white">
-                    {loading ? '—' : winningTeam}
+                    {loading || error ? '—' : winningTeam}
                   </div>
                 </div>
               </div>
@@ -167,7 +174,7 @@ export default function Home() {
           <div className="grid lg:grid-cols-2 gap-10">
             <div>
               <h2 className="text-2xl md:text-3xl font-black text-center mb-6 text-white flex items-center justify-center gap-2 uppercase">
-                Top 5 <Image src="/images/arrow-up.png" alt="Up arrow" width={24} height={24} className="inline-block" />
+                Top 5 <Image src={assetUrl("/images/arrow-up.webp")} alt="Up arrow" width={24} height={24} className="inline-block" />
               </h2>
               <div className="space-y-4">
                 {(stats?.topPlayersByUpvotes ?? new Array(5).fill(null)).map(
@@ -253,7 +260,7 @@ export default function Home() {
 
             <div>
               <h2 className="text-2xl md:text-3xl font-black text-center mb-6 text-white flex items-center justify-center gap-2 uppercase">
-                Bottom 5 <Image src="/images/arrow-down.png" alt="Down arrow" width={24} height={24} className="inline-block" />
+                Bottom 5 <Image src={assetUrl("/images/arrow-down.webp")} alt="Down arrow" width={24} height={24} className="inline-block" />
               </h2>
               <div className="space-y-4">
                 {(stats?.bottomPlayersByVotes ?? new Array(5).fill(null)).map(

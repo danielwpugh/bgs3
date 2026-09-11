@@ -1,148 +1,56 @@
-# Database Performance Optimizations
+# Performance work and measured results
 
-This document describes the optimizations implemented to handle thousands of votes per second.
+Measurements below are from September 10, 2026, on the local Mac using a production Next build, native PostgreSQL 18, 200 fixture players, and approximately one million votes. They are not DigitalOcean/SALP production guarantees. CI uses PostgreSQL 16. Real player portrait assets were not provided.
 
-## Overview
+## Changes
 
-The database system has been optimized for high-throughput vote processing through:
-1. **Database Indexing** - Added indexes on frequently queried columns
-2. **Denormalization** - Stored vote counts directly in the Player table
-3. **Atomic Operations** - Used database transactions for vote creation and count updates
-4. **Query Optimization** - Eliminated expensive COUNT queries for vote counts
+- Removed per-player database queries from public statistics.
+- Replaced loading every vote into Node with a SQL date aggregation. Grouping by the date itself avoids formatting every individual timestamp.
+- Read leaderboard/team/total counts from denormalized player counters in a single query.
+- Cache daily aggregates for five seconds per process. Concurrent misses share one query; failures are evicted. Player totals still read fresh counters, and accepted votes return the committed count immediately.
+- Cached filesystem image resolution (including missing-number lookups) for 30 seconds.
+- Removed browser cache-busting timestamps and unnecessary preflight-triggering cache headers from player-list requests. Responses remain `no-store` for freshness and preview privacy.
+- Lazy-load player-grid images and route bundles. Disable expensive automatic network probes for every missing portrait.
+- Ship optimized WebP UI images with a smaller mobile decorative background. Preserve original source images in the repository; the SALP ZIP contains optimized images.
+- Scope public CSS to the SALP app root and use hashed JS/CSS bundles.
 
-## Changes Made
+## Recorded API results
 
-### 1. Database Schema Updates
+Read-only HTTP test: 200 requests per endpoint, concurrency 10, default p95 budget 500 ms.
 
-#### Added Indexes to Vote Table
-- `@@index([playerId])` - Fast lookups by player
-- `@@index([playerId, type])` - Fast filtered lookups by player and vote type
-- `@@index([createdAt])` - Fast time-based queries
+| Dataset / implementation | Players p95 | Stats p95 | HTTP failures |
+| --- | ---: | ---: | ---: |
+| 100k votes, first SQL rewrite | 55 ms | 100 ms | 0 |
+| 1m votes, first SQL rewrite without cache | 52 ms | 974 ms | 0 |
+| 1m votes, final date grouping + aggregate cache | 99 ms | 35 ms | 0 |
 
-#### Added Denormalized Vote Counts to Player Table
-- `upvoteCount Int @default(0)` - Total upvotes for the player
-- `downvoteCount Int @default(0)` - Total downvotes for the player
+The uncached million-vote test intentionally failed its 500 ms stats budget and prompted the second optimization. Final stats first-request time was approximately 55 ms; warm p50 was 28 ms through HTTP.
 
-These columns are updated atomically when votes are created, eliminating the need for expensive COUNT queries.
+A separate same-database direct-handler comparison used the original `HEAD` stats source and the revised handler. Five original calls took 3,133–4,796 ms. The revised first call took 52 ms and subsequent warm calls took 2–3 ms. This isolates handler behavior and excludes HTTP overhead. The comparison runner and raw original source are retained locally in `.local/`; measured JSON is under `artifacts/performance/stats-before-after.json`.
 
-### 2. Vote Endpoint Optimization (`app/api/votes/route.ts`)
+## Reproduction
 
-**Before:**
-- 3+ database queries per vote:
-  1. Find player
-  2. Create vote
-  3. COUNT upvotes
-  4. COUNT downvotes
-
-**After:**
-- 2 database operations in a single transaction:
-  1. Find player (cached/optimized)
-  2. Transaction:
-     - Create vote
-     - Atomically increment vote count in Player table
-     - Return updated counts
-
-**Performance Improvement:** ~3x faster per vote, with better consistency guarantees.
-
-### 3. Query Endpoint Optimizations
-
-All endpoints that read vote counts now use the denormalized values:
-
-- `app/api/players/route.ts` - Uses `upvoteCount` and `downvoteCount` directly
-- `app/api/players/[slug]/route.ts` - Uses denormalized counts
-- `app/api/admin/players/route.ts` - Uses denormalized counts
-- `app/api/stats/route.ts` - Uses denormalized counts for all-time stats
-- `app/api/admin/analytics/route.ts` - Uses denormalized counts for all-time stats
-
-**Performance Improvement:** Eliminated N+1 COUNT queries (where N = number of players).
-
-### 4. Connection Pooling
-
-Prisma client configuration has been optimized for high-throughput scenarios. The connection pool settings help handle concurrent requests efficiently.
-
-## Migration Steps
-
-### Step 1: Run Database Migration
+Start the isolated database, production API, and SALP preview as described in README. Then:
 
 ```bash
-npm run db:migrate
+TEST_VOTES=1000000 npm run db:seed:test
+npm run test:performance
+npm run test:page-performance
 ```
 
-This will:
-- Add indexes to the Vote table
-- Add `upvoteCount` and `downvoteCount` columns to the Player table
+`API_BASE_URL`, `PERF_REQUESTS`, `PERF_CONCURRENCY`, and `PERF_P95_MS` configure the API test. `PREVIEW_TOKEN` can authorize read-only testing of a protected preview. The script checks HTTP failures and fails the process when p95 exceeds the budget. It writes timestamped JSON under `artifacts/performance/`.
 
-### Step 2: Backfill Existing Vote Counts
+The page script records data-ready time, largest-contentful-paint (LCP), transfer bytes visible to Resource Timing, request count, and screenshots. It runs with a 390×844 viewport, with and without simulated 1.6 Mbps download, 150 ms latency, and 4× CPU slowdown. It disables browser cache and dismisses the first-visit welcome modal. It currently reports metrics rather than enforcing a page-load budget. Cross-origin resource sizes may be unavailable without Timing-Allow-Origin; transfer bytes are not an exhaustive network accounting.
 
-After running the migration, backfill vote counts for existing data:
+The initial mobile run exposed a 12-second LCP from a large decorative image despite statistics appearing within about 2.6 seconds. Responsive background assets were added afterward. After that change, the final run measured ~203 ms data-ready / 220 ms LCP unthrottled, and ~2,671 ms data-ready / 3,176 ms LCP under the mobile throttle. The final ZIP is about 1.6 MB. The latest final measurement is in `artifacts/performance/page-load.json`; repeat this on actual SALP before claiming production page-load performance. Local preview serves assets without assuming Amazon's CDN compression or caching behavior.
 
-```bash
-npm run db:backfill-votes
-```
+## Follow-up work
 
-This script:
-- Calculates vote counts for all existing players
-- Updates the denormalized columns
-- Verifies the results
+1. Run the browser performance script on final assets and real SALP staging, both first-visit (welcome modal) and returning-visitor paths; set practical LCP/data-ready budgets.
+2. Repeat load tests against the intended droplet size and database using production-sized portraits and realistic concurrent reads/writes. Include sustained runs spanning multiple five-second cache expiries.
+3. Check uploaded portrait dimensions and caching; API improvements do not solve oversized portrait downloads.
+4. Validate counter consistency before migrating existing data. Reconcile while writes are paused.
+5. For sustained larger traffic, consider maintained daily totals or a shared cache instead of repeated per-process SQL aggregation; add distributed rate limiting before multiple app replicas.
+6. Profile the admin analytics endpoint separately: this pass optimizes the public landing page and directory, not all historical admin exports/analytics.
 
-**Note:** The system will continue to work during migration - it falls back to COUNT queries if denormalized columns don't exist yet.
-
-## Performance Characteristics
-
-### Vote Creation
-- **Before:** ~50-100ms per vote (3+ queries)
-- **After:** ~15-30ms per vote (1 transaction)
-- **Throughput:** Can handle 1000+ votes/second per instance
-
-### Vote Count Queries
-- **Before:** O(N) COUNT queries where N = number of votes
-- **After:** O(1) direct column read
-- **Improvement:** 100-1000x faster for players with many votes
-
-### Scalability
-- **Horizontal Scaling:** Each instance can handle thousands of votes/second
-- **Database Load:** Reduced by ~70% through denormalization
-- **Index Usage:** All vote queries now use indexes for optimal performance
-
-## Monitoring
-
-To monitor performance:
-1. Check database query logs for slow queries
-2. Monitor transaction times in the vote endpoint
-3. Track vote counts to ensure they match actual vote records
-
-## Rollback Plan
-
-If you need to rollback:
-1. The code includes fallback logic - it will use COUNT queries if denormalized columns don't exist
-2. Remove the `upvoteCount` and `downvoteCount` columns from the schema
-3. Run a migration to remove the columns
-4. The system will automatically fall back to COUNT queries
-
-## Future Optimizations
-
-Potential further optimizations:
-1. **Redis Caching** - Cache vote counts for frequently accessed players
-2. **Read Replicas** - Use read replicas for vote count queries
-3. **Batch Processing** - Batch vote count updates for very high throughput
-4. **Rate Limiting** - Move to Redis-based rate limiting for distributed systems
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+The five-second chart staleness is intentional. The daily vote rule uses Pacific dates; daily chart grouping retains UTC dates. They are different reporting boundaries and should be documented or unified in a separately reviewed product change.

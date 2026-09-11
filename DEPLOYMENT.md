@@ -1,385 +1,86 @@
-# Beast Games - Deployment Guide
+# Backend releases and SALP rollout
 
-This guide covers deploying the Beast Games application to a DigitalOcean droplet with Nginx reverse proxy and HTTPS.
+## Architecture and boundary
 
-## Prerequisites
+SALP hosts only static public UI and assets. DigitalOcean hosts Next.js 15 API/admin, uploads, and PostgreSQL (prefer a managed database or a separately maintained database service). Use a dedicated HTTPS API hostname. Keep the database private; publish the app only through a TLS reverse proxy. Static deployment must never include backend secrets.
 
-- DigitalOcean droplet (Ubuntu 22.04 LTS recommended)
-- Domain name pointing to your droplet's IP address
-- SSH access to your droplet
-- PostgreSQL database (can be on the same droplet or separate)
+Public routes have additive `/api/v1/` aliases; legacy `/api/` continues to work. `/api/v1/health` reports readiness. Admin routes are not exposed through the versioned public namespace and do not receive cross-origin access.
 
-## Step 1: Server Setup
+CORS uses exact configured origins. Set all actual Amazon origins from which the SALP instance runs, and any approved staging origins, in `CORS_ALLOWED_ORIGINS`. Confirm the actual origin in the browser. No wildcard Amazon subdomain matching is assumed. Also configure SALP CSP `connect-src` for the API, `img-src` for uploaded images, and the existing Adobe Typekit stylesheet/font hosts if required by the SALP integration. The supplied Terminal List README establishes packaging conventions; actual Amazon acceptance must still be tested on SALP.
 
-### 1.1 Update System
+Optional GA4 is configured with `VITE_GA_MEASUREMENT_ID` in the frontend environment (leave blank to disable); hash route pageviews are tracked without sending preview credentials. Allow the analytics hosts in SALP CSP if enabling it. The Next preview retains `NEXT_PUBLIC_GA_MEASUREMENT_ID`.
+
+The frontend uses credentials-free public requests and a browser-generated UUID header for voting. The optional shared preview password uses a scoped JWT in session storage, so third-party cookie blocking does not break login. The API itself now enforces preview protection on players, stats, and votes. Admin uses its existing same-origin HttpOnly cookie. This shared preview password is not per-user authorization; static JS and assets are always downloadable.
+
+## First deployment: existing database
+
+The original repository had a Prisma schema but no migration history. The new `20260911000000_baseline` creates that full schema **for an empty database only**. Do not blindly apply it to the existing production DB.
+
+1. Take a verified database backup and copy existing `uploads/` to persistent storage. Test this process on a staging clone first.
+2. Compare the existing schema with the checked-in schema:
+
+   ```bash
+   npx prisma migrate diff --from-url "$DATABASE_URL" --to-schema-datamodel prisma/schema.prisma --script > schema-review.sql
+   ```
+
+3. Review the SQL. Apply required additive changes separately and verify data. Do not run `db push --accept-data-loss`. Verify counter columns, vote type/identity columns, indexes, settings, and `OG` enum support.
+4. With voting and admin vote writes paused, reconcile denormalized counters (`npm run db:backfill-votes`) and confirm totals against the Vote table. The legacy backfill is not safe during concurrent writes.
+5. Only once the existing schema matches the baseline, mark it applied without executing CREATE TABLE statements:
+
+   ```bash
+   npx prisma migrate resolve --applied 20260911000000_baseline
+   npm run db:deploy
+   ```
+
+6. Resume writes after readiness, admin login, images, voting, and totals pass staging checks.
+
+For an empty database, `npm run db:deploy` applies the baseline directly. Subsequent schema changes must use new committed migrations; do not edit the baseline after deployment.
+
+## Droplet preparation
+
+Install Docker Engine with Compose v2, Nginx, and TLS certificates. Place `deploy/compose.yaml` at `/opt/beastgames/compose.yaml`. Create `/opt/beastgames/uploads/players`, owned by container UID 1000, and copy existing uploads there. Keep `/opt/beastgames/backend.env` readable only by the deployment operator:
+
+```dotenv
+DATABASE_URL=postgresql://USER:PASSWORD@PRIVATE_DATABASE_HOST/beastgames?schema=public
+JWT_SECRET=REPLACE_WITH_A_RANDOM_SECRET_OF_AT_LEAST_32_CHARACTERS
+CORS_ALLOWED_ORIGINS=https://ACTUAL_SALP_ORIGIN
+NEXT_PUBLIC_SITE_URL=https://YOUR_API_HOST
+```
+
+Never commit this file. Use a different secret/database on staging. Include `deploy/nginx.conf.example` inside the appropriate HTTPS server block. The app binds only to loopback on the droplet; Nginx owns the public ports. Preserve uploaded files across every release. Back them up independently of images.
+
+## Build, publish, and update
+
+The manually dispatched `Build release artifacts` GitHub workflow builds a SALP ZIP for the selected GitHub environment and pushes `ghcr.io/<owner>/<repo>/backend:<commit-sha>`. Configure `VITE_API_BASE_URL` as a GitHub environment variable. Configure environment protection rules if desired. It **builds/publishes artifacts only**; it does not contact DigitalOcean or upload to SALP.
+
+For a manual backend image build:
 
 ```bash
-sudo apt update && sudo apt upgrade -y
+docker build --platform linux/amd64 -f deploy/Dockerfile -t YOUR_REGISTRY/beastgames-backend:COMMIT_SHA .
+docker push YOUR_REGISTRY/beastgames-backend:COMMIT_SHA
 ```
 
-### 1.2 Install Node.js
+Use the architecture of your droplet. Sign the droplet in to the image registry with a read-only pull credential. Copy `scripts/deploy-backend.sh` to the droplet. After reviewing the release, run there (or over your normal SSH connection):
 
 ```bash
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt install -y nodejs
+bash /opt/beastgames/deploy-backend.sh YOUR_REGISTRY/beastgames-backend:COMMIT_SHA
 ```
 
-Verify installation:
-```bash
-node --version
-npm --version
-```
+The script pulls the immutable image, applies migrations using the image's pinned Prisma CLI, replaces the service, waits for database-backed health, and restores the previous application image on failed startup. It records `current-image` and `previous-image`. A single-instance replacement can briefly interrupt traffic; this is not a zero-downtime blue/green deployment. On the first container migration there is no previous recorded image to restore: keep the old PM2 service/config available until initial verification succeeds.
 
-### 1.3 Install PostgreSQL
+For later manual rollback, run the same script with the previous immutable image. **Database migrations are not reversed automatically.** Expand/contract schema changes are necessary for rollback to work. A failed migration stops the script before the app replacement and requires operator review.
 
-```bash
-sudo apt install -y postgresql postgresql-contrib
-sudo systemctl start postgresql
-sudo systemctl enable postgresql
-```
+## Independent release policy
 
-Create database and user:
-```bash
-sudo -u postgres psql
-```
+1. Deploy the v1-capable backend bridge while the existing iframe still runs.
+2. Verify `/api/v1/health`, allowlisted CORS, legacy API behavior, admin, uploads, and preview login.
+3. Build/upload the SALP ZIP pointing at that backend; test on Amazon staging before production.
+4. Retain the last two frontend ZIPs and backend image tags. Preserve uploaded assets and old hash-named frontend assets for in-flight browser sessions if SALP supports it.
+5. Keep API v1 fields, types, meanings, and error semantics stable. Add optional fields rather than removing/renaming fields. New breaking behavior gets `/api/v2`, while v1 remains supported through frontend propagation and rollback windows.
+6. Deploy additive DB migration + backward-compatible backend before the new frontend. Remove old columns/contracts only after old clients are retired.
 
-In PostgreSQL shell:
-```sql
-CREATE DATABASE beastgames;
-CREATE USER beastgames_user WITH PASSWORD 'your_secure_password';
-GRANT ALL PRIVILEGES ON DATABASE beastgames TO beastgames_user;
-\q
-```
+A public client never retries a vote automatically. Its stable UUID supports browser daily limits, but deleting storage or choosing a new UUID can evade browser identity limits. The current burst limiter is process-local, not distributed anti-fraud protection. Before horizontal scaling or a high-profile public launch, add a shared rate limiter/bot-control strategy and load test the actual droplet/database size. The daily vote concurrency lock is already database-backed across processes.
 
-### 1.4 Install Nginx
+## Still requires deployment-specific verification
 
-```bash
-sudo apt install -y nginx
-sudo systemctl start nginx
-sudo systemctl enable nginx
-```
-
-### 1.5 Install PM2
-
-```bash
-sudo npm install -g pm2
-```
-
-## Step 2: Application Setup
-
-### 2.1 Clone Repository
-
-```bash
-cd /var/www
-sudo git clone <your-repo-url> beastgames
-sudo chown -R $USER:$USER beastgames
-cd beastgames
-```
-
-### 2.2 Install Dependencies
-
-```bash
-npm install
-```
-
-### 2.3 Environment Variables
-
-Create `.env` file:
-```bash
-nano .env
-```
-
-Add the following (replace with your actual values):
-```env
-DATABASE_URL="postgresql://beastgames_user:your_secure_password@localhost:5432/beastgames?schema=public"
-JWT_SECRET="your-very-secure-random-secret-key-change-this"
-NEXT_PUBLIC_APP_URL="https://yourdomain.com"
-NODE_ENV="production"
-```
-
-### 2.4 Database Setup
-
-Generate Prisma client:
-```bash
-npm run db:generate
-```
-
-Run migrations:
-```bash
-npm run db:deploy
-```
-
-Seed initial admin user:
-```bash
-npm run db:seed
-```
-
-**Important:** Save the generated password from the seed script output!
-
-### 2.5 Build Application
-
-```bash
-npm run build
-```
-
-### 2.6 Create Uploads Directory
-
-```bash
-mkdir -p uploads/players
-chmod 755 uploads
-chmod 755 uploads/players
-```
-
-## Step 3: Run with PM2
-
-### 3.1 Start Application
-
-```bash
-pm2 start npm --name "beastgames" -- start
-```
-
-Or create an ecosystem file for better management:
-
-```bash
-nano ecosystem.config.js
-```
-
-Add:
-```javascript
-module.exports = {
-  apps: [{
-    name: 'beastgames',
-    script: 'npm',
-    args: 'start',
-    cwd: '/var/www/beastgames',
-    env: {
-      NODE_ENV: 'production',
-    },
-  }],
-};
-```
-
-Then:
-```bash
-pm2 start ecosystem.config.js
-pm2 save
-pm2 startup
-```
-
-### 3.2 Verify PM2
-
-```bash
-pm2 status
-pm2 logs beastgames
-```
-
-## Step 4: Nginx Configuration
-
-### 4.1 Create Nginx Config
-
-```bash
-sudo nano /etc/nginx/sites-available/beastgames
-```
-
-Add:
-```nginx
-server {
-    listen 80;
-    server_name yourdomain.com www.yourdomain.com;
-
-    # Increase body size limit for image uploads (50MB)
-    client_max_body_size 50M;
-
-    # Uploads directory
-    location /uploads {
-        alias /var/www/beastgames/uploads;
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
-
-    # Proxy to Next.js
-    location / {
-        proxy_pass http://localhost:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
-    }
-}
-```
-
-### 4.2 Enable Site
-
-```bash
-sudo ln -s /etc/nginx/sites-available/beastgames /etc/nginx/sites-enabled/
-sudo nginx -t
-sudo systemctl reload nginx
-```
-
-## Step 5: SSL with Let's Encrypt
-
-### 5.1 Install Certbot
-
-```bash
-sudo apt install -y certbot python3-certbot-nginx
-```
-
-### 5.2 Obtain Certificate
-
-```bash
-sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
-```
-
-Follow the prompts. Certbot will automatically update your Nginx config.
-
-### 5.3 Auto-Renewal
-
-Certbot sets up auto-renewal automatically. Test it:
-```bash
-sudo certbot renew --dry-run
-```
-
-## Step 6: Firewall Configuration
-
-```bash
-sudo ufw allow OpenSSH
-sudo ufw allow 'Nginx Full'
-sudo ufw enable
-sudo ufw status
-```
-
-## Step 7: Verify Deployment
-
-1. Visit `https://yourdomain.com` - should see the landing page
-2. Visit `https://yourdomain.com/admin/login` - should see login page
-3. Log in with the admin credentials from the seed script
-4. Change the admin password via `/admin/settings`
-
-## Maintenance Commands
-
-### View Logs
-```bash
-pm2 logs beastgames
-```
-
-### Restart Application
-```bash
-pm2 restart beastgames
-```
-
-### Update Application
-```bash
-cd /var/www/beastgames
-git pull
-npm install
-npm run db:generate
-npm run db:deploy
-npm run build
-pm2 restart beastgames --update-env
-```
-
-**Important:** Avoid running `next build` while the PM2 process is serving traffic. Building updates the `.next/` output in-place, and a running server can briefly observe a mismatched build output (which can lead to errors like “Failed to find Server Action ...”).
-
-A safer update sequence is:
-
-```bash
-cd /var/www/beastgames
-pm2 stop beastgames
-git pull
-npm install
-npm run db:generate
-npm run db:deploy
-npm run build
-pm2 start beastgames --update-env
-```
-
-### Database Backup
-```bash
-sudo -u postgres pg_dump beastgames > backup_$(date +%Y%m%d).sql
-```
-
-### Database Restore
-```bash
-sudo -u postgres psql beastgames < backup_YYYYMMDD.sql
-```
-
-## Troubleshooting
-
-### Application not starting
-- Check PM2 logs: `pm2 logs beastgames`
-- Verify environment variables in `.env`
-- Check database connection
-- Verify port 3000 is not in use: `sudo lsof -i :3000`
-
-### Error: ENOENT `.next/prerender-manifest.json`
-This means **Next.js is being started without a successful build output present** (or PM2 is running from the wrong directory).
-
-On the server:
-```bash
-cd /var/www/beastgames
-npm install
-npm run build
-pm2 restart beastgames
-```
-
-Also verify PM2 is using the correct working directory:
-```bash
-pm2 show beastgames | sed -n '1,120p'
-```
-
-### Nginx 502 Bad Gateway
-- Check if Next.js is running: `pm2 status`
-- Check Nginx error logs: `sudo tail -f /var/log/nginx/error.log`
-- Verify proxy_pass URL matches PM2 process
-
-### Error: Failed to find Server Action "x". This request might be from an older or newer deployment.
-This happens when the browser sends a request tied to **one build** but the server is currently running **another build**. Common causes:
-
-- You deployed a new build while the old server was still running (building updates `.next/` in-place)
-- PM2 is running more than one process/instance and not all were restarted to the same build
-- A user has an old tab open from before deployment and clicks a button after the deploy (a refresh fixes it)
-
-Fix on the server:
-
-```bash
-cd /var/www/beastgames
-pm2 stop beastgames
-rm -rf .next
-npm install
-npm run build
-pm2 start beastgames --update-env
-```
-
-If you use a proxy/CDN in front of Nginx, ensure it is **not caching** dynamic HTML/RSC responses.
-
-### Database Connection Issues
-- Verify PostgreSQL is running: `sudo systemctl status postgresql`
-- Check database credentials in `.env`
-- Test connection: `psql -U beastgames_user -d beastgames -h localhost`
-
-### Image Upload Issues
-- Check uploads directory permissions: `ls -la uploads/`
-- Ensure directory exists: `mkdir -p uploads/players`
-- Check disk space: `df -h`
-
-## Security Notes
-
-1. **Change default admin password** immediately after first login
-2. **Use strong JWT_SECRET** - generate with: `openssl rand -base64 32`
-3. **Keep system updated**: `sudo apt update && sudo apt upgrade`
-4. **Regular backups** of database and uploads directory
-5. **Monitor logs** for suspicious activity
-6. **Use firewall** (UFW) to restrict access
-7. **Keep Node.js and dependencies updated**
-
-## Additional Resources
-
-- [Next.js Deployment](https://nextjs.org/docs/deployment)
-- [PM2 Documentation](https://pm2.keymetrics.io/docs/)
-- [Nginx Documentation](https://nginx.org/en/docs/)
-- [Let's Encrypt Documentation](https://letsencrypt.org/docs/)
-
+Actual API hostname, Amazon origins/page ID/CSP, DigitalOcean credentials, database baseline state, TLS, persistent uploads, registry access, and SALP acceptance are environment-specific. No external deployment is performed by the local setup. Docker image execution is covered by the supplied workflow design but must be run on a Docker-capable machine; local native tests do not substitute for a container smoke test.

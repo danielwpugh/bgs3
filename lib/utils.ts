@@ -21,6 +21,10 @@ export function checkRateLimit(
   windowMs: number = 60000 // 1 minute
 ): boolean {
   const now = Date.now();
+  if (rateLimitStore.size > 10000) {
+    for (const [key, value] of rateLimitStore) if (now > value.resetAt) rateLimitStore.delete(key);
+    if (rateLimitStore.size > 20000 && !rateLimitStore.has(identifier)) return false;
+  }
   const record = rateLimitStore.get(identifier);
 
   if (!record || now > record.resetAt) {
@@ -76,6 +80,7 @@ export function getPacificDateKey(date: Date = new Date()): string {
 
 import { access, constants } from 'fs/promises';
 import { join } from 'path';
+const imageCache = new Map<number, {expires:number; url:string|null}>();
 
 /**
  * Resolve player image URL.
@@ -103,6 +108,9 @@ export async function resolvePlayerImageUrl(
     return normalizeStored(storedImageUrl);
   }
 
+  const cached = imageCache.get(playerNumber);
+  if (cached && cached.expires > Date.now()) return cached.url || normalizeStored(storedImageUrl);
+  if (imageCache.size > 10000) imageCache.clear();
   // Pad player number to three digits (e.g., 11 -> 011)
   const paddedPlayerNumber = String(playerNumber).padStart(3, '0');
 
@@ -112,18 +120,14 @@ export async function resolvePlayerImageUrl(
     const diskPath = join(process.cwd(), 'uploads', 'players', `${paddedPlayerNumber}.${ext}`);
     try {
       await access(diskPath, constants.F_OK);
-      return `/uploads/players/${paddedPlayerNumber}.${ext}`;
+      const url = `/uploads/players/${paddedPlayerNumber}.${ext}`;
+      imageCache.set(playerNumber, {expires:Date.now()+30000,url});
+      return url;
     } catch {
       // try next extension
     }
   }
 
-  // Fall back to stored imageUrl (normalize so it actually loads in the browser).
-  if (process.env.NODE_ENV === 'development') {
-    console.log(
-      `Fallback image not found for playerNumber ${playerNumber} (checked ${exts.map((e) => '.' + e).join(', ')}), using stored imageUrl`
-    );
-  }
+  imageCache.set(playerNumber, {expires:Date.now()+30000,url:null});
   return normalizeStored(storedImageUrl);
 }
-

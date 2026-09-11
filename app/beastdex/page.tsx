@@ -1,5 +1,6 @@
 'use client';
 
+import { apiFetch, assetUrl } from '@/lib/public-client';
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import type { Player, PlayerTeam } from '@prisma/client';
@@ -21,6 +22,7 @@ export default function BeastdexPage() {
   const [teamFilter, setTeamFilter] = useState<PlayerTeam | 'ALL'>('ALL');
   const [eliminatedFilter, setEliminatedFilter] = useState<'ALL' | 'ACTIVE' | 'ELIMINATED'>('ALL');
   const [sortBy, setSortBy] = useState<'name-asc' | 'name-desc' | 'team' | 'playerNumber'>('name-asc');
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
   const hasOGTeam = useMemo(() => players.some((p) => p.team === 'OG'), [players]);
@@ -41,29 +43,22 @@ export default function BeastdexPage() {
   }, [hasOGTeam, teamFilter]);
 
   async function fetchPlayers() {
+    setError('');
+    setLoading(true);
     try {
-      // Bust any intermediary/browser caching so toggles in admin reflect immediately.
-      const res = await fetch(`/api/players?ts=${Date.now()}`, {
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache',
-          Pragma: 'no-cache',
-        },
-      });
+      const res = await apiFetch('/api/players');
       if (!res.ok) {
         throw new Error(`Failed to fetch players: ${res.status} ${res.statusText}`);
       }
       const data = await res.json();
-      console.log('Fetched players data:', data);
       if (data.players && Array.isArray(data.players)) {
-        console.log(`Loaded ${data.players.length} players`);
         setPlayers(data.players);
       } else {
         console.warn('Unexpected data format:', data);
         setPlayers([]);
       }
     } catch (error) {
-      console.error('Failed to fetch players:', error);
+      setError('Unable to load players. Please try again.');
       setPlayers([]);
     } finally {
       setLoading(false);
@@ -170,6 +165,7 @@ export default function BeastdexPage() {
           <h1 className="text-5xl font-black mb-8 uppercase">Beastdex</h1>
         </div>
 
+        {error && <p role="alert">{error} <button onClick={fetchPlayers}>Retry</button></p>}
         {/* Filters */}
         <div className="mb-8">
           <div className="flex flex-wrap gap-x-4 gap-y-2 sm:gap-y-4">
@@ -266,7 +262,7 @@ export default function BeastdexPage() {
                 {isEliminated(player) && (
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <img
-                      src="/images/x-overlay.png"
+                      src={assetUrl("/images/x-overlay.webp")}
                       alt="Eliminated"
                       className="w-[80%] h-[80%] object-contain"
                     />

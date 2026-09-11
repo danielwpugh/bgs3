@@ -19,7 +19,7 @@ const playerSchema = z.object({
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getAdminSession(request);
   
@@ -31,7 +31,7 @@ export async function PUT(
   }
 
   try {
-    const id = parseInt(params.id);
+    const id = parseInt((await params).id);
     if (isNaN(id)) {
       return NextResponse.json(
         { error: 'Invalid player ID' },
@@ -116,7 +116,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getAdminSession(request);
   
@@ -128,7 +128,7 @@ export async function DELETE(
   }
 
   try {
-    const id = parseInt(params.id);
+    const id = parseInt((await params).id);
     if (isNaN(id)) {
       return NextResponse.json(
         { error: 'Invalid player ID' },

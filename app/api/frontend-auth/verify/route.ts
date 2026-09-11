@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-change-in-production';
+import { jwtSecret } from '@/lib/secret';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Check if user has a valid token
-    const token = request.cookies.get('frontend-token')?.value;
+    const token = request.headers.get('authorization')?.replace(/^Bearer /, '') || request.cookies.get('frontend-token')?.value;
     
     if (!token) {
       return NextResponse.json(
@@ -49,7 +49,8 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-      jwt.verify(token, JWT_SECRET);
+      const payload = jwt.verify(token, jwtSecret());
+      if (typeof payload !== 'object' || payload.type !== 'frontend-auth') throw new Error('Invalid token type');
       return NextResponse.json(
         {
           enabled: true,

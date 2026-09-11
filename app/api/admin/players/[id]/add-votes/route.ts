@@ -12,7 +12,7 @@ const addVotesSchema = z.object({
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getAdminSession(request);
   if (!session) {
@@ -20,7 +20,7 @@ export async function POST(
   }
 
   try {
-    const id = parseInt(params.id, 10);
+    const id = parseInt((await params).id, 10);
     if (!Number.isFinite(id)) {
       return NextResponse.json({ error: 'Invalid player ID' }, { status: 400 });
     }

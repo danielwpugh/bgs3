@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { verifyPassword } from '@/lib/auth';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-change-in-production';
+import { jwtSecret } from '@/lib/secret';
 
 export async function POST(request: NextRequest) {
   try {
@@ -40,11 +40,11 @@ export async function POST(request: NextRequest) {
     // Create a session token (different from admin token)
     const token = jwt.sign(
       { type: 'frontend-auth' },
-      JWT_SECRET,
+      jwtSecret(),
       { expiresIn: '30d' } // Longer session for front-end
     );
 
-    const response = NextResponse.json({ success: true });
+    const response = NextResponse.json({ success: true, token });
     response.cookies.set('frontend-token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
