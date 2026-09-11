@@ -11,7 +11,7 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
-    "db:seed": "tsx prisma/seed.ts",
+    "db:seed": "node prisma/seed.js",
     "db:backfill-votes": "tsx prisma/backfill-vote-counts.ts",
     "db:check": "tsx check-db-schema.ts",
     "db:studio": "prisma studio",

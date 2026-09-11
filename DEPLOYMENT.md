@@ -68,6 +68,16 @@ bash /opt/beastgames/deploy-backend.sh YOUR_REGISTRY/beastgames-backend:COMMIT_S
 
 The script pulls the immutable image, applies migrations using the image's pinned Prisma CLI, replaces the service, waits for database-backed health, and restores the previous application image on failed startup. It records `current-image` and `previous-image`. A single-instance replacement can briefly interrupt traffic; this is not a zero-downtime blue/green deployment. On the first container migration there is no previous recorded image to restore: keep the old PM2 service/config available until initial verification succeeds.
 
+After the first deployment to an empty staging database, create the admin account from the deployed image:
+
+```bash
+cd /opt/beastgames
+export BACKEND_IMAGE="$(cat current-image)"
+docker compose -f compose.yaml run --rm --no-deps api npm run db:seed
+```
+
+The command prints the generated username and password once. Save them immediately. Re-running the command replaces that admin user's password, so do not run it as a routine deployment step.
+
 For later manual rollback, run the same script with the previous immutable image. **Database migrations are not reversed automatically.** Expand/contract schema changes are necessary for rollback to work. A failed migration stops the script before the app replacement and requires operator review.
 
 ## Independent release policy
