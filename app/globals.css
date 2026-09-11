@@ -1,0 +1,229 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-main: #050710;
+  --fg-main: #f9fafb;
+  --accent-blue: #03bce6;
+  --accent-pink: #e64783;
+  --accent-gray: #9ca3af;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  background-color: var(--bg-main);
+  color: var(--fg-main);
+}
+
+body {
+  font-family: "eurostile", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Main background image: keep stable on mobile (iOS Safari) */
+.beastgames-main-bg {
+  height: 100svh; /* stable viewport height on mobile */
+}
+
+@supports (height: 100dvh) {
+  .beastgames-main-bg {
+    height: 100dvh; /* dynamic viewport height when supported */
+  }
+}
+
+/* Background image opacity on mobile breakpoints */
+.beastgames-bg-mobile-opacity {
+  opacity: 0.5;
+}
+
+@media (min-width: 768px) {
+  .beastgames-bg-mobile-opacity {
+    opacity: 1;
+  }
+}
+
+/* Consistent select dropdown arrow (incl. iOS Safari) */
+select.select-white-arrow {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath fill='white' d='M5.25 7.5 10 12.25 14.75 7.5 16 8.75 10 14.75 4 8.75z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.85rem center;
+  background-size: 1rem 1rem;
+  padding-right: 2.75rem;
+}
+
+select.select-white-arrow::-ms-expand {
+  display: none;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 900;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Neon glow effects */
+.neon-blue {
+  box-shadow: 0 0 10px var(--accent-blue), 0 0 20px var(--accent-blue), 0 0 30px var(--accent-blue);
+}
+
+.neon-pink {
+  box-shadow: 0 0 10px var(--accent-pink), 0 0 20px var(--accent-pink), 0 0 30px var(--accent-pink);
+}
+
+.neon-gray {
+  box-shadow: 0 0 10px var(--accent-gray), 0 0 20px var(--accent-gray), 0 0 30px var(--accent-gray);
+}
+
+.neon-blue-text {
+  text-shadow: 0 0 10px var(--accent-blue), 0 0 20px var(--accent-blue);
+}
+
+.neon-pink-text {
+  text-shadow: 0 0 10px var(--accent-pink), 0 0 20px var(--accent-pink);
+}
+
+.neon-gray-text {
+  text-shadow: 0 0 10px var(--accent-gray), 0 0 20px var(--accent-gray);
+}
+
+/* Card hover effects */
+.card-hover {
+  transition: all 0.3s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-4px);
+  /* Default hover glow (kept for any legacy usage). Prefer the explicit
+     team variants below on Beastdex tiles. */
+  box-shadow: 0 0 15px rgba(3, 188, 230, 0.30), 0 0 30px rgba(3, 188, 230, 0.20);
+}
+
+.card-hover-blue:hover {
+  box-shadow: 0 0 15px rgba(3, 188, 230, 0.30), 0 0 30px rgba(3, 188, 230, 0.20);
+}
+
+.card-hover-pink:hover {
+  box-shadow: 0 0 15px rgba(230, 71, 131, 0.30), 0 0 30px rgba(230, 71, 131, 0.20);
+}
+
+.card-hover-gray:hover {
+  box-shadow: 0 0 15px rgba(156, 163, 175, 0.28), 0 0 30px rgba(156, 163, 175, 0.18);
+}
+
+/* Button styles */
+.btn-primary {
+  @apply px-6 py-3 rounded-full font-semibold transition-all duration-300;
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-pink));
+  color: var(--bg-main);
+}
+
+.btn-primary:hover {
+  box-shadow: 0 0 20px rgba(59, 244, 255, 0.5), 0 0 40px rgba(255, 59, 244, 0.3);
+  transform: translateY(-2px);
+}
+
+.btn-secondary {
+  @apply px-6 py-3 rounded-full font-semibold transition-all duration-300;
+  background: transparent;
+  border: 2px solid var(--accent-blue);
+  color: var(--accent-blue);
+}
+
+.btn-secondary:hover {
+  background: var(--accent-blue);
+  color: var(--bg-main);
+  box-shadow: 0 0 15px rgba(3, 188, 230, 0.4);
+}
+
+/* Browse button hover effect */
+.browse-button {
+  /* Smooth, dramatic hover without layout shift */
+  will-change: transform, box-shadow, filter;
+  transform: translateZ(0);
+}
+
+.browse-button:hover {
+  border-color: rgba(255, 255, 255, 0.9) !important;
+  transform: translateY(-4px) scale(1.02);
+  filter: brightness(1.08) saturate(1.25);
+  text-shadow: 0 0 14px rgba(255, 255, 255, 0.45);
+  box-shadow:
+    0 0 28px rgba(3, 188, 230, 0.55),
+    0 0 52px rgba(230, 71, 131, 0.45),
+    0 14px 36px rgba(0, 0, 0, 0.35);
+}
+
+.browse-button:focus-visible {
+  border-color: rgba(255, 255, 255, 0.95) !important;
+  transform: translateY(-4px) scale(1.02);
+  filter: brightness(1.08) saturate(1.25);
+  text-shadow: 0 0 14px rgba(255, 255, 255, 0.45);
+  box-shadow:
+    0 0 28px rgba(3, 188, 230, 0.55),
+    0 0 52px rgba(230, 71, 131, 0.45),
+    0 14px 36px rgba(0, 0, 0, 0.35);
+  outline: 2px solid rgba(255, 255, 255, 0.9);
+  outline-offset: 4px;
+}
+
+.browse-button:active {
+  transform: translateY(-1px) scale(1.01);
+  filter: brightness(1.03) saturate(1.12);
+}
+
+/* Eliminated player image styling */
+.eliminated-image {
+  /* Keep the photo visible even on darker tiles while still clearly "eliminated". */
+  opacity: 0.8;
+  filter: grayscale(100%) contrast(1.05) brightness(0.95);
+}
+
+/* FontAwesome icon sizing to prevent flicker */
+svg[data-icon] {
+  display: inline-block;
+  width: 1em !important;
+  height: 1em !important;
+  vertical-align: -0.125em;
+  font-size: inherit;
+  max-width: 1em;
+  max-height: 1em;
+}
+
+svg[data-icon] svg {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+svg[data-icon] path {
+  fill: currentColor;
+}
+
+/* Ensure FontAwesome icons don't render large before CSS loads */
+.fa,
+.fas,
+.far,
+.fal,
+.fad,
+.fab {
+  font-size: inherit;
+  width: 1em;
+  height: 1em;
+  display: inline-block;
+}
+

@@ -1,0 +1,35 @@
+# Node.js dependencies
+/node_modules
+/.next
+/out
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+logs
+*.log
+
+# Database
+*.sqlite
+prisma/dev.db
+
+# OS / Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Build output
+dist
+build
+coverage
+
+# Uploads (handled separately on server)
+uploads/

@@ -1,0 +1,91 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Player {
+  id          Int       @id @default(autoincrement())
+  playerNumber Int?     @unique
+  slug        String    @unique
+  name        String
+  title       String?
+  team        PlayerTeam
+  bio         String?
+  imageUrl    String?
+  eliminated  Boolean   @default(false)
+  groupNumber Int?      // Admin-only field for grouping players
+  extraFields Json?     // flexible key-value store for future fields
+  votes       Vote[]
+  // Denormalized vote counts for performance (updated atomically)
+  upvoteCount   Int      @default(0)
+  downvoteCount Int      @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+enum PlayerTeam {
+  STRONG
+  SMART
+  OG
+}
+
+enum VoteType {
+  UPVOTE
+  DOWNVOTE
+}
+
+model Vote {
+  id        Int      @id @default(autoincrement())
+  player    Player   @relation(fields: [playerId], references: [id])
+  playerId  Int
+  type      VoteType @default(UPVOTE)
+  sessionId String? // Legacy: previously used for daily vote limits
+  voterId   String? // Cookie-based voter identifier (per-browser)
+  dayPacific String? // YYYY-MM-DD in America/Los_Angeles (Pacific Time)
+  createdAt DateTime @default(now())
+  // optional metadata fields for future:
+  metadata  Json?
+
+  @@index([playerId])
+  @@index([playerId, type])
+  @@index([createdAt])
+  @@index([playerId, type, sessionId, createdAt])
+  @@index([playerId, voterId, dayPacific])
+  @@index([dayPacific])
+}
+
+model AdminUser {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  password  String   // store a bcrypt hash
+  createdAt DateTime @default(now())
+}
+
+model Settings {
+  id                     Int       @id @default(autoincrement())
+  backgroundImageUrl     String?
+  logoUrl                String?
+  frontendPasswordEnabled Boolean   @default(false)
+  frontendPassword       String?   // bcrypt hash
+  dailyVoteLimitEnabled  Boolean   @default(false)
+  pauseVoting            Boolean   @default(false)
+  updatedAt              DateTime  @updatedAt
+}
+
+model Visitor {
+  id        Int      @id @default(autoincrement())
+  ipAddress String
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@unique([ipAddress, date])
+  @@index([date])
+}
+
