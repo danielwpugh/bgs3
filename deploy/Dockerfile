@@ -17,6 +17,9 @@ COPY --from=build --chown=node:node /app/prisma ./prisma
 # Pin the migration CLI to the lockfile version without shipping all build dependencies.
 COPY --from=build /app/node_modules/prisma ./node_modules/prisma
 COPY --from=build /app/node_modules/@prisma ./node_modules/@prisma
+# The standalone Next.js build bundles this for request handlers, but the
+# operational admin seed runs it directly at runtime.
+COPY --from=build /app/node_modules/bcryptjs ./node_modules/bcryptjs
 RUN mkdir -p uploads/players && chown -R node:node uploads
 USER node
 EXPOSE 3000
