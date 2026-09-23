@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
           logoUrl: null,
           frontendPasswordEnabled: false,
           frontendPassword: null,
-          dailyVoteLimitEnabled: false,
+          dailyVoteLimitEnabled: true,
           pauseVoting: false,
         },
       });
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
 
     // Don't return the password hash in the response
     const { frontendPassword: _, ...settingsResponse } = settings;
-    const res = NextResponse.json({ settings: settingsResponse });
+    const res = NextResponse.json({ settings: { ...settingsResponse, dailyVoteLimitEnabled: true } });
     res.headers.set('Cache-Control', 'no-store');
     return res;
   } catch (error) {
@@ -69,12 +69,18 @@ export async function PUT(request: NextRequest) {
       pauseVoting,
     } = body;
 
-    // Get or create settings (singleton pattern)
-    // Use most recently updated row to avoid "flip-flopping" if multiple rows exist.
+    if (dailyVoteLimitEnabled === false) {
+      return NextResponse.json(
+        { error: 'The daily vote limit is required and cannot be disabled.' },
+        { status: 400 }
+      );
+    }
+
+    // Use the most recently updated settings row.
     let settings = await prisma.settings.findFirst({ orderBy: { updatedAt: 'desc' } });
-    
+
     // Prepare update data
-    const updateData: any = {};
+    const updateData: any = { dailyVoteLimitEnabled: true };
     
     if (backgroundImageUrl !== undefined) {
       updateData.backgroundImageUrl = backgroundImageUrl || null;
@@ -95,9 +101,6 @@ export async function PUT(request: NextRequest) {
       // If setting a password, enable the feature
       updateData.frontendPasswordEnabled = true;
     }
-    if (dailyVoteLimitEnabled !== undefined) {
-      updateData.dailyVoteLimitEnabled = dailyVoteLimitEnabled;
-    }
     if (pauseVoting !== undefined) {
       updateData.pauseVoting = pauseVoting;
     }
@@ -111,7 +114,7 @@ export async function PUT(request: NextRequest) {
           frontendPassword: frontendPassword && frontendPassword !== '' 
             ? await hashPassword(frontendPassword) 
             : null,
-          dailyVoteLimitEnabled: dailyVoteLimitEnabled || false,
+          dailyVoteLimitEnabled: true,
           pauseVoting: pauseVoting || false,
         },
       });
@@ -125,7 +128,7 @@ export async function PUT(request: NextRequest) {
     // Don't return the password hash in the response
     const { frontendPassword: _, ...settingsResponse } = settings;
 
-    const res = NextResponse.json({ settings: settingsResponse });
+    const res = NextResponse.json({ settings: { ...settingsResponse, dailyVoteLimitEnabled: true } });
     res.headers.set('Cache-Control', 'no-store');
     return res;
   } catch (error) {

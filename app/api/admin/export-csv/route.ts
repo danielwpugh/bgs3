@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (players.length === 0) {
-      return new NextResponse('id,playerNumber,name,slug,title,team,bio,eliminated,imageUrl,groupNumber\n', {
+      return new NextResponse('id,playerNumber,name,slug,title,team,bio,eliminated,imageUrl,groupNumber,country\n', {
         headers: {
           'Content-Type': 'text/csv',
           'Content-Disposition': 'attachment; filename="players-export.csv"',
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Collect all unique extra field keys across all players
-    const extraFieldKeys = new Set<string>();
+    const extraFieldKeys = new Set<string>(['country']);
     players.forEach(player => {
       if (player.extraFields && typeof player.extraFields === 'object') {
         Object.keys(player.extraFields).forEach(key => extraFieldKeys.add(key));

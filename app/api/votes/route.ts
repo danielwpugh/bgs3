@@ -3,7 +3,6 @@ import { publicAuthError } from '@/lib/public-auth';
 import { prisma } from '@/lib/prisma';
 import { checkRateLimit, getPacificDateKey } from '@/lib/utils';
 import { z } from 'zod';
-import { cookies } from 'next/headers';
 import { randomUUID } from 'crypto';
 
 const voteSchema = z.object({
@@ -24,7 +23,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const data = voteSchema.parse(body);
 
-    const cookieStore = await cookies();
+    const cookieStore = request.cookies;
     const headerVoterIdRaw = request.headers.get('x-voter-id');
     const headerVoterId = headerVoterIdRaw && z.string().uuid().safeParse(headerVoterIdRaw).success ? headerVoterIdRaw : null;
 
@@ -83,10 +82,10 @@ export async function POST(request: NextRequest) {
       const dayPacific = getPacificDateKey(new Date());
       // Serialize votes for the same browser/player/day; no uniqueness migration required.
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`${player.id}:${voterId}:${dayPacific}`}, 0))`;
-      if (settings?.dailyVoteLimitEnabled) {
-        const existing = await tx.vote.findFirst({where:{playerId:player.id,voterId,dayPacific}});
-        if (existing) throw new Error('DAILY_LIMIT');
-      }
+      // Always enforce the limit, including old databases where the optional
+      // dailyVoteLimitEnabled setting is false or no settings row exists.
+      const existing = await tx.vote.findFirst({where:{playerId:player.id,voterId,dayPacific}});
+      if (existing) throw new Error('DAILY_LIMIT');
       const vote = await tx.vote.create({data:{playerId:player.id,type:data.type,sessionId,voterId,dayPacific}});
 
       // Atomically update vote counts in Player table
@@ -123,7 +122,7 @@ export async function POST(request: NextRequest) {
       success: true,
       upvoteCount: result.upvoteCount,
       downvoteCount: result.downvoteCount,
-      message: settings?.dailyVoteLimitEnabled ? 'Vote recorded! You can vote for this player again tomorrow.' : 'Vote recorded!',
+      message: 'Vote recorded! You can vote for this player again after midnight Pacific Time.',
       voterId,
     });
 
@@ -146,7 +145,7 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error) {
-    if (error instanceof Error && error.message === 'DAILY_LIMIT') return NextResponse.json({error:'You have already voted for this player today.'}, {status:400});
+    if (error instanceof Error && error.message === 'DAILY_LIMIT') return NextResponse.json({error:'You have already voted for this player today. Voting resets at midnight Pacific Time.'}, {status:400});
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Invalid input', details: error.errors },

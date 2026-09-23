@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminSession } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { parse } from 'csv-parse/sync';
+import { mergeExtraFields } from '@/lib/country';
 import { slugify } from '@/lib/utils';
 
 export async function POST(request: NextRequest) {
@@ -115,7 +116,7 @@ export async function POST(request: NextRequest) {
         // Build extraFields from any columns that aren't standard fields
         const extraFields: Record<string, any> = {};
         for (const [key, value] of Object.entries(row)) {
-          if (!standardFields.has(key) && value && value.toString().trim() !== '') {
+          if (!standardFields.has(key) && (key === 'country' || (value && value.toString().trim() !== ''))) {
             extraFields[key] = value.toString().trim();
           }
         }
@@ -144,7 +145,7 @@ export async function POST(request: NextRequest) {
           // Try to find by id first (most reliable for updates)
           existing = await prisma.player.findUnique({ where: { id } });
           if (existing) {
-            const data: any = { ...baseData };
+            const data: any = { ...baseData, extraFields: mergeExtraFields(existing.extraFields, extraFields) };
             // Only change slug if explicitly provided in the CSV.
             if (slugProvided && rawSlug !== existing.slug) {
               const conflictBySlug = await prisma.player.findUnique({ where: { slug: rawSlug } });
@@ -193,7 +194,7 @@ export async function POST(request: NextRequest) {
           // Try to find by playerNumber for synchronization
           existing = await prisma.player.findUnique({ where: { playerNumber } });
           if (existing) {
-            const data: any = { ...baseData };
+            const data: any = { ...baseData, extraFields: mergeExtraFields(existing.extraFields, extraFields) };
             // Only change slug if explicitly provided in the CSV.
             if (slugProvided && rawSlug !== existing.slug) {
               const conflictBySlug = await prisma.player.findUnique({ where: { slug: rawSlug } });
@@ -222,7 +223,7 @@ export async function POST(request: NextRequest) {
                   results.errors.push(`Row ${i + 2}: Cannot sync by slug "${rawSlug}" - it already has playerNumber ${existingBySlug.playerNumber}`);
                   continue;
                 }
-                const data: any = { ...baseData, slug: rawSlug };
+                const data: any = { ...baseData, slug: rawSlug, extraFields: mergeExtraFields(existingBySlug.extraFields, extraFields) };
                 await prisma.player.update({
                   where: { slug: rawSlug },
                   data,
@@ -250,7 +251,7 @@ export async function POST(request: NextRequest) {
 
           existing = await prisma.player.findUnique({ where: { slug: slugForLookup } });
           if (existing) {
-            const data: any = { ...baseData };
+            const data: any = { ...baseData, extraFields: mergeExtraFields(existing.extraFields, extraFields) };
             // Only change slug if explicitly provided and different (shouldn't really happen in slug-based path).
             if (slugProvided && rawSlug !== existing.slug) {
               const conflictBySlug = await prisma.player.findUnique({ where: { slug: rawSlug } });

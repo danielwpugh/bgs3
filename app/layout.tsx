@@ -41,15 +41,6 @@ export default function RootLayout({
               <footer className="relative z-10 border-t border-white/10 bg-black/30 backdrop-blur-sm">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4 text-center text-xs text-white/80">
                   <span>Voting is for entertainment purposes only.</span>
-                  <span className="mx-2 text-white/30">|</span>
-                  <a
-                    href="https://www.amazon.com/gp/help/customer/display.html?nodeId=GX7NJQ4ZB8MHFRNJ"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="underline underline-offset-4 hover:text-white"
-                  >
-                    Privacy Policy
-                  </a>
                 </div>
               </footer>
             </div>

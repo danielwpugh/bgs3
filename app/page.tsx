@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faThumbsUp } from '@fortawesome/free-solid-svg-icons';
+import { CountryBadge } from '@/components/CountryBadge';
 import { PlayerImage } from '@/components/PlayerImage';
 
 interface Stats {
@@ -20,6 +21,7 @@ interface Stats {
     title: string | null;
     team: 'STRONG' | 'SMART' | 'OG';
     imageUrl: string | null;
+    extraFields?: { country?: string } | null;
     upvoteCount: number;
   }>;
   bottomPlayersByVotes: Array<{
@@ -29,6 +31,7 @@ interface Stats {
     title: string | null;
     team: 'STRONG' | 'SMART' | 'OG';
     imageUrl: string | null;
+    extraFields?: { country?: string } | null;
     upvoteCount: number;
   }>;
   teamVotes: {
@@ -79,14 +82,6 @@ export default function Home() {
 
   const activePlayers = stats?.activePlayerCount ?? stats?.playerCount ?? 0;
   const votesToday = stats?.todayVotes ?? 0;
-  const winningTeam = (() => {
-    if (!stats || !stats.teamVotes) return '—';
-    const entries = Object.entries(stats.teamVotes) as Array<[string, number]>;
-    if (entries.length === 0) return '—';
-    const maxVotes = Math.max(...entries.map(([, v]) => v));
-    const winners = entries.filter(([, v]) => v === maxVotes).map(([k]) => k);
-    return winners.length === 1 ? winners[0] : 'TIED';
-  })();
 
   return (
     <div className="min-h-screen text-fg-main">
@@ -103,7 +98,7 @@ export default function Home() {
           </div>
 
           <div className="w-full lg:w-2/3">
-            <div className="grid grid-cols-3 gap-4 md:gap-6 text-center">
+            <div className="grid grid-cols-2 gap-4 md:gap-6 text-center">
               <div>
                 <div className="text-[0.6rem] md:text-xs uppercase tracking-[0.15em] font-bold text-white mb-2 whitespace-nowrap">
                   Active Players
@@ -130,19 +125,7 @@ export default function Home() {
                   </div>
                 </div>
               </div>
-              <div>
-                <div className="text-[0.6rem] md:text-xs uppercase tracking-[0.15em] font-bold text-white mb-2 whitespace-nowrap">
-                  Winning Team
-                </div>
-                <div
-                  className="rounded-lg px-4 py-3 md:px-6 md:py-4 min-h-[3.75rem] md:min-h-[4.5rem] flex items-center justify-center"
-                  style={{ backgroundColor: 'rgba(89, 88, 88, 0.3)', border: '1px solid rgba(255, 255, 255, 0.2)' }}
-                >
-                  <div className="text-xl md:text-3xl font-black text-white">
-                    {loading || error ? '—' : winningTeam}
-                  </div>
-                </div>
-              </div>
+
             </div>
           </div>
         </div>
@@ -155,7 +138,7 @@ export default function Home() {
             style={{
               border: '1px solid rgba(255, 255, 255, 0.43)',
               borderRadius: '10px',
-              background: 'linear-gradient(to right, #03bce6, #e64783)',
+              background: 'linear-gradient(to right, #03bce6, #087fba)',
             }}
           >
             Browse and Vote
@@ -188,13 +171,7 @@ export default function Home() {
                         border: '2px solid rgba(215, 215, 215, 0.11)',
                       }}
                       onMouseEnter={(e) => {
-                        const hoverColor = player?.team === 'STRONG' 
-                          ? 'var(--accent-blue)' 
-                          : player?.team === 'SMART' 
-                          ? 'var(--accent-pink)' 
-                          : player?.team === 'OG'
-                          ? 'var(--accent-gray)'
-                          : '#4b5563';
+                        const hoverColor = 'var(--accent-blue)';
                         e.currentTarget.style.borderColor = hoverColor;
                       }}
                       onMouseLeave={(e) => {
@@ -218,6 +195,7 @@ export default function Home() {
                       </div>
                       <div className="flex-1 min-w-0 h-full px-4 py-3 md:px-6 md:py-4 flex items-center justify-between gap-4 max-[480px]:h-auto max-[480px]:flex-col max-[480px]:items-start max-[480px]:gap-2">
                         <div className="min-w-0">
+                          <CountryBadge extraFields={player?.extraFields} className="mb-3" />
                           <div className="text-2xl sm:text-3xl md:text-4xl font-black uppercase break-words leading-tight">
                             {player ? player.name : '—'}
                           </div>
@@ -227,25 +205,7 @@ export default function Home() {
                           >
                             {player?.title || 'Player'}
                           </div>
-                          <div className={`inline-flex items-center px-3 py-1 text-xs md:text-sm uppercase rounded ${
-                            player?.team === 'STRONG'
-                              ? 'border text-white'
-                              : player?.team === 'SMART'
-                              ? 'border text-white'
-                            : player?.team === 'OG'
-                              ? 'border text-white'
-                              : 'bg-gray-800 text-gray-200'
-                          }`}
-                          style={player?.team === 'STRONG' 
-                            ? { border: '1px solid #99ECFF', backgroundColor: '#00BFEC' }
-                            : player?.team === 'SMART'
-                            ? { border: '1px solid #FF7AB1', backgroundColor: '#FA2F82' }
-                            : player?.team === 'OG'
-                            ? { border: '1px solid #D1D5DB', backgroundColor: '#4B5563' }
-                            : undefined
-                          }>
-                            {player ? player.team : 'Team'}
-                          </div>
+
                         </div>
                         <div className="text-right text-sm md:text-base text-white max-[480px]:w-full max-[480px]:text-left whitespace-nowrap shrink-0 flex items-center justify-end gap-2 max-[480px]:justify-start">
                           <span>{player ? player.upvoteCount.toLocaleString() : '—'}</span>
@@ -274,13 +234,7 @@ export default function Home() {
                         border: '2px solid rgba(215, 215, 215, 0.11)',
                       }}
                       onMouseEnter={(e) => {
-                        const hoverColor = player?.team === 'STRONG' 
-                          ? 'var(--accent-blue)' 
-                          : player?.team === 'SMART' 
-                          ? 'var(--accent-pink)' 
-                          : player?.team === 'OG'
-                          ? 'var(--accent-gray)'
-                          : '#4b5563';
+                        const hoverColor = 'var(--accent-blue)';
                         e.currentTarget.style.borderColor = hoverColor;
                       }}
                       onMouseLeave={(e) => {
@@ -304,6 +258,7 @@ export default function Home() {
                       </div>
                       <div className="flex-1 min-w-0 h-full px-4 py-3 md:px-6 md:py-4 flex items-center justify-between gap-4 max-[480px]:h-auto max-[480px]:flex-col max-[480px]:items-start max-[480px]:gap-2">
                         <div className="min-w-0">
+                          <CountryBadge extraFields={player?.extraFields} className="mb-3" />
                           <div className="text-2xl sm:text-3xl md:text-4xl font-black uppercase break-words leading-tight">
                             {player ? player.name : '—'}
                           </div>
@@ -313,25 +268,7 @@ export default function Home() {
                           >
                             {player?.title || 'Player'}
                           </div>
-                          <div className={`inline-flex items-center px-3 py-1 text-xs md:text-sm uppercase rounded ${
-                            player?.team === 'STRONG'
-                              ? 'border text-white'
-                              : player?.team === 'SMART'
-                              ? 'border text-white'
-                              : player?.team === 'OG'
-                              ? 'border text-white'
-                              : 'bg-gray-800 text-gray-200'
-                          }`}
-                          style={player?.team === 'STRONG' 
-                            ? { border: '1px solid #99ECFF', backgroundColor: '#00BFEC' }
-                            : player?.team === 'SMART'
-                            ? { border: '1px solid #FF7AB1', backgroundColor: '#FA2F82' }
-                            : player?.team === 'OG'
-                            ? { border: '1px solid #D1D5DB', backgroundColor: '#4B5563' }
-                            : undefined
-                          }>
-                            {player ? player.team : 'Team'}
-                          </div>
+
                         </div>
                         <div className="text-right text-sm md:text-base text-white max-[480px]:w-full max-[480px]:text-left whitespace-nowrap shrink-0 flex items-center justify-end gap-2 max-[480px]:justify-start">
                           <span>{player ? player.upvoteCount.toLocaleString() : '—'}</span>

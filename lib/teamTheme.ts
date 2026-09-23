@@ -14,9 +14,9 @@ export const TEAM_THEME: Record<
     hoverGlow: '0 0 20px rgba(3, 188, 230, 0.5), 0 0 40px rgba(3, 188, 230, 0.3)',
   },
   SMART: {
-    accentVar: 'var(--accent-pink)',
-    badge: { border: '#FF7AB1', background: '#FA2F82', text: '#FFFFFF' },
-    hoverGlow: '0 0 20px rgba(230, 71, 131, 0.5), 0 0 40px rgba(230, 71, 131, 0.3)',
+    accentVar: 'var(--accent-blue)',
+    badge: { border: '#99ECFF', background: '#00BFEC', text: '#FFFFFF' },
+    hoverGlow: '0 0 20px rgba(3, 188, 230, 0.5), 0 0 40px rgba(3, 188, 230, 0.3)',
   },
   OG: {
     accentVar: 'var(--accent-gray)',

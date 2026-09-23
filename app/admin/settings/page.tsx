@@ -26,10 +26,6 @@ export default function AdminSettingsPage() {
   const [frontendPasswordLoading, setFrontendPasswordLoading] = useState(false);
   const [frontendPasswordError, setFrontendPasswordError] = useState('');
   const [frontendPasswordSuccess, setFrontendPasswordSuccess] = useState(false);
-  const [dailyVoteLimitEnabled, setDailyVoteLimitEnabled] = useState(false);
-  const [dailyVoteLimitLoading, setDailyVoteLimitLoading] = useState(false);
-  const [dailyVoteLimitError, setDailyVoteLimitError] = useState('');
-  const [dailyVoteLimitSuccess, setDailyVoteLimitSuccess] = useState(false);
   const [pauseVotingEnabled, setPauseVotingEnabled] = useState(false);
   const [pauseVotingLoading, setPauseVotingLoading] = useState(false);
   const [pauseVotingError, setPauseVotingError] = useState('');
@@ -68,7 +64,6 @@ export default function AdminSettingsPage() {
         password: '',
         confirmPassword: '',
       });
-      setDailyVoteLimitEnabled(data.settings?.dailyVoteLimitEnabled || false);
       setPauseVotingEnabled(data.settings?.pauseVoting || false);
     } catch (error) {
       console.error('Failed to fetch settings:', error);
@@ -220,34 +215,6 @@ export default function AdminSettingsPage() {
     }
   }
 
-  async function handleDailyVoteLimitToggle() {
-    setDailyVoteLimitError('');
-    setDailyVoteLimitSuccess(false);
-    setDailyVoteLimitLoading(true);
-
-    try {
-      const res = await fetch('/api/admin/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          dailyVoteLimitEnabled: !dailyVoteLimitEnabled,
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to update daily vote limit settings');
-
-      setSettings(data.settings);
-      setDailyVoteLimitEnabled(data.settings.dailyVoteLimitEnabled);
-      setDailyVoteLimitSuccess(true);
-      setTimeout(() => setDailyVoteLimitSuccess(false), 3000);
-    } catch (error) {
-      setDailyVoteLimitError(error instanceof Error ? error.message : 'Failed to update settings');
-    } finally {
-      setDailyVoteLimitLoading(false);
-    }
-  }
-
   async function handlePauseVotingToggle() {
     setPauseVotingError('');
     setPauseVotingSuccess(false);
@@ -377,34 +344,9 @@ export default function AdminSettingsPage() {
           <div className="p-6 rounded-lg border-2 border-accent-blue bg-gray-900">
             <h2 className="text-2xl font-bold mb-4">Vote Restrictions</h2>
             <p className="text-sm text-gray-400 mb-4">
-              When enabled, each player can only receive one vote per day per browser cookie. The day resets at midnight Pacific time. This helps prevent vote manipulation.
+              Each browser can vote for each player once per day. This limit is always enforced and resets at midnight Pacific Time, including daylight saving time.
             </p>
             <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  id="dailyVoteLimitEnabled"
-                  checked={dailyVoteLimitEnabled}
-                  onChange={handleDailyVoteLimitToggle}
-                  disabled={dailyVoteLimitLoading}
-                  className="w-5 h-5 rounded border-gray-700 bg-gray-800 text-accent-blue focus:ring-accent-blue disabled:opacity-50 disabled:cursor-not-allowed"
-                />
-                <label htmlFor="dailyVoteLimitEnabled" className="text-sm font-medium">
-                  Restrict votes to one vote per player per day
-                </label>
-              </div>
-
-              {dailyVoteLimitError && (
-                <div className="p-3 rounded-lg bg-red-900 text-red-200 text-sm">
-                  {dailyVoteLimitError}
-                </div>
-              )}
-              {dailyVoteLimitSuccess && (
-                <div className="p-3 rounded-lg bg-green-900 text-green-200 text-sm">
-                  Vote restriction settings updated successfully!
-                </div>
-              )}
-
               <div className="pt-2 border-t border-gray-800" />
 
               <div className="flex items-center gap-3">

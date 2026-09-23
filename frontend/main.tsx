@@ -38,6 +38,6 @@ function App() {
   useEffect(() => { const update = () => { setRoute(location.hash.slice(1) || '/'); window.scrollTo(0,0); }; window.addEventListener('hashchange', update); return () => window.removeEventListener('hashchange', update); }, []);
   const path = route.split('?')[0];
   const page = path === '/' || path === '/stats' ? <Home /> : path === '/beastdex' ? <Beastdex /> : path === '/frontend-login' ? <Login /> : path.startsWith('/players/') ? <PlayerRoute key={path} slug={decodeURIComponent(path.slice(9))} /> : <p>Page not found. <a href="#/">Go home</a></p>;
-  return <RouteContext.Provider value={route}><Analytics /><Boundary key={path}><VisitorTracker /><Suspense fallback={<p>Loading…</p>}><FrontendAuthGuard><BackgroundWrapper>{page}</BackgroundWrapper><footer className="relative text-center py-4 text-xs">Voting is for entertainment purposes only. | <a href="https://www.amazon.com/gp/help/customer/display.html?nodeId=GX7NJQ4ZB8MHFRNJ">Privacy Policy</a></footer></FrontendAuthGuard></Suspense></Boundary></RouteContext.Provider>;
+  return <RouteContext.Provider value={route}><Analytics /><Boundary key={path}><VisitorTracker /><Suspense fallback={<p>Loading…</p>}><FrontendAuthGuard><BackgroundWrapper>{page}</BackgroundWrapper><footer className="relative text-center py-4 text-xs">Voting is for entertainment purposes only.</footer></FrontendAuthGuard></Suspense></Boundary></RouteContext.Provider>;
 }
 createRoot(document.getElementById('beastgames-root')!).render(<App />);

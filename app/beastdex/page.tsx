@@ -1,13 +1,13 @@
 'use client';
 
 import { apiFetch, assetUrl } from '@/lib/public-client';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import type { Player, PlayerTeam } from '@prisma/client';
+import type { Player } from '@prisma/client';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCaretLeft, faThumbsUp } from '@fortawesome/free-solid-svg-icons';
 import { PlayerImage } from '@/components/PlayerImage';
-import { getTeamTheme } from '@/lib/teamTheme';
+import { CountryBadge } from '@/components/CountryBadge';
 
 interface PlayerWithVotes extends Player {
   _count: { votes: number };
@@ -19,13 +19,10 @@ export default function BeastdexPage() {
   const [players, setPlayers] = useState<PlayerWithVotes[]>([]);
   const [filteredPlayers, setFilteredPlayers] = useState<PlayerWithVotes[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [teamFilter, setTeamFilter] = useState<PlayerTeam | 'ALL'>('ALL');
   const [eliminatedFilter, setEliminatedFilter] = useState<'ALL' | 'ACTIVE' | 'ELIMINATED'>('ALL');
-  const [sortBy, setSortBy] = useState<'name-asc' | 'name-desc' | 'team' | 'playerNumber'>('name-asc');
+  const [sortBy, setSortBy] = useState<'name-asc' | 'name-desc' | 'playerNumber'>('name-asc');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
-
-  const hasOGTeam = useMemo(() => players.some((p) => p.team === 'OG'), [players]);
 
   useEffect(() => {
     fetchPlayers();
@@ -33,14 +30,7 @@ export default function BeastdexPage() {
 
   useEffect(() => {
     filterAndSortPlayers();
-  }, [players, searchQuery, teamFilter, eliminatedFilter, sortBy]);
-
-  useEffect(() => {
-    // If OG isn't present, ensure we don't leave the UI stuck filtering on OG.
-    if (!hasOGTeam && teamFilter === 'OG') {
-      setTeamFilter('ALL');
-    }
-  }, [hasOGTeam, teamFilter]);
+  }, [players, searchQuery, eliminatedFilter, sortBy]);
 
   async function fetchPlayers() {
     setError('');
@@ -112,11 +102,6 @@ export default function BeastdexPage() {
       });
     }
 
-    // Team filter
-    if (teamFilter !== 'ALL') {
-      filtered = filtered.filter((p) => p.team === teamFilter);
-    }
-
     // Eliminated filter
     if (eliminatedFilter === 'ACTIVE') {
       filtered = filtered.filter((p) => !isEliminated(p));
@@ -128,12 +113,7 @@ export default function BeastdexPage() {
     filtered.sort((a, b) => {
       if (sortBy === 'name-asc') return (a.name ?? '').localeCompare(b.name ?? '');
       if (sortBy === 'name-desc') return (b.name ?? '').localeCompare(a.name ?? '');
-      if (sortBy === 'team') {
-        // Be null-safe and stable if any legacy data ever has a missing team.
-        const aTeam = (a as any).team ?? '';
-        const bTeam = (b as any).team ?? '';
-        return String(aTeam).localeCompare(String(bTeam));
-      }
+
       if (sortBy === 'playerNumber') {
         // Sort by player number, with null values at the end
         if (a.playerNumber === null && b.playerNumber === null) return 0;
@@ -176,17 +156,7 @@ export default function BeastdexPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="px-4 py-2 rounded-lg bg-gray-900 border border-gray-700 text-white focus:border-accent-blue focus:outline-none"
             />
-            
-            <select
-              value={teamFilter}
-              onChange={(e) => setTeamFilter(e.target.value as PlayerTeam | 'ALL')}
-              className="select-white-arrow pl-4 py-2 rounded-lg bg-gray-900 border border-gray-700 text-white focus:border-accent-blue focus:outline-none"
-            >
-              <option value="ALL">All Teams</option>
-              <option value="STRONG">Strong</option>
-              <option value="SMART">Smart</option>
-              {hasOGTeam && <option value="OG">OG</option>}
-            </select>
+
 
             <select
               value={eliminatedFilter}
@@ -213,7 +183,6 @@ export default function BeastdexPage() {
               >
                 <option value="name-asc">Name (A-Z)</option>
                 <option value="name-desc">Name (Z-A)</option>
-                <option value="team">Team</option>
                 <option value="playerNumber">Player Number</option>
               </select>
             </div>
@@ -231,15 +200,7 @@ export default function BeastdexPage() {
             <Link
               key={player.id}
               href={`/players/${player.slug}`}
-              className={`card-hover ${
-                player.team === 'STRONG' ? 'card-hover-blue' : player.team === 'SMART' ? 'card-hover-pink' : 'card-hover-gray'
-              } rounded-lg overflow-hidden border-2 ${
-                player.team === 'STRONG'
-                  ? 'border-accent-blue xl:border-transparent xl:hover:border-accent-blue'
-                  : player.team === 'SMART'
-                  ? 'border-accent-pink xl:border-transparent xl:hover:border-accent-pink'
-                  : 'border-accent-gray xl:border-transparent xl:hover:border-accent-gray'
-              } bg-black/20`}
+              className="card-hover card-hover-blue rounded-lg overflow-hidden border-2 border-accent-blue xl:border-transparent xl:hover:border-accent-blue bg-black/20"
             >
               <div className="relative w-full aspect-[4/5] bg-black/20">
                 <PlayerImage
@@ -276,15 +237,7 @@ export default function BeastdexPage() {
                   <p className="text-sm text-gray-400 mb-2 font-black uppercase">{player.title}</p>
                 )}
                 <div className="flex items-center justify-between mb-2">
-                  <span
-                    className="inline-flex items-center px-3 py-1 text-xs uppercase tracking-[0.15em] rounded border text-white"
-                    style={(() => {
-                      const theme = getTeamTheme(player.team);
-                      return { border: `1px solid ${theme.badge.border}`, backgroundColor: theme.badge.background };
-                    })()}
-                  >
-                    {player.team}
-                  </span>
+                  <CountryBadge extraFields={player.extraFields} />
                   <span className="text-sm text-gray-400">
                     <span className="inline-flex items-center gap-3 tabular-nums">
                       <span className="inline-flex items-center gap-1" aria-label={`${player.upvoteCount} upvotes`}>

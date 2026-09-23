@@ -74,6 +74,7 @@ model Settings {
   logoUrl                String?
   frontendPasswordEnabled Boolean   @default(false)
   frontendPassword       String?   // bcrypt hash
+  // Legacy compatibility field; public votes always enforce the daily limit.
   dailyVoteLimitEnabled  Boolean   @default(false)
   pauseVoting            Boolean   @default(false)
   updatedAt              DateTime  @updatedAt

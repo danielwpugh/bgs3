@@ -39,7 +39,8 @@
     "test:docker": "bash scripts/docker-smoke.sh",
     "test:backend-smoke": "node scripts/smoke-backend.mjs",
     "configure:staging": "node scripts/staging-config.mjs",
-    "local": "node scripts/local.mjs"
+    "local": "node scripts/local.mjs",
+    "test:votes": "node --import tsx --test tests/integration/votes.test.ts"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^7.1.0",

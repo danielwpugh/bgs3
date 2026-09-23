@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import AdminLayout from '@/components/AdminLayout';
 import Link from 'next/link';
+import { COUNTRIES } from '@/lib/country';
 import type { BeastTeam } from '@/lib/teamTheme';
 
 interface Player {
@@ -51,6 +52,7 @@ export default function AdminPlayersPage() {
     imageUrl: '',
     eliminated: false,
     groupNumber: '' as string,
+    country: '',
     linkLabel: '',
     linkUrl: '',
     extraFields: {} as Record<string, any>,
@@ -93,9 +95,10 @@ export default function AdminPlayersPage() {
       imageUrl: player.imageUrl || '',
       eliminated: player.eliminated,
       groupNumber: player.groupNumber === null || player.groupNumber === undefined ? '' : String(player.groupNumber),
+      country: typeof extraFields.country === 'string' ? extraFields.country : '',
       linkLabel: extraFields.linkLabel || '',
       linkUrl: extraFields.linkUrl || '',
-      extraFields: {},
+      extraFields: { ...extraFields },
     });
     setShowForm(true);
   }
@@ -113,6 +116,7 @@ export default function AdminPlayersPage() {
       imageUrl: '',
       eliminated: false,
       groupNumber: '',
+      country: '',
       linkLabel: '',
       linkUrl: '',
       extraFields: {},
@@ -261,8 +265,8 @@ export default function AdminPlayersPage() {
       payload.bio = formData.bio?.trim() || null;
       payload.imageUrl = formData.imageUrl?.trim() || null;
       
-      // Build extraFields with link data
-      const extraFields: Record<string, any> = { ...formData.extraFields };
+      // Preserve arbitrary extra fields while editing country and links.
+      const extraFields: Record<string, any> = { ...formData.extraFields, country: formData.country.trim() };
       if (formData.linkLabel?.trim() || formData.linkUrl?.trim()) {
         extraFields.linkLabel = formData.linkLabel?.trim() || '';
         extraFields.linkUrl = formData.linkUrl?.trim() || '';
@@ -665,6 +669,21 @@ export default function AdminPlayersPage() {
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                     className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:border-accent-blue focus:outline-none"
                   />
+                </div>
+                <div>
+                  <label htmlFor="player-country" className="block mb-2 text-sm font-medium">Country</label>
+                  <input
+                    id="player-country"
+                    list="country-options"
+                    value={formData.country}
+                    onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                    placeholder="e.g. Australia or AU"
+                    className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:border-accent-blue focus:outline-none"
+                  />
+                  <datalist id="country-options">
+                    {COUNTRIES.map(({ code, name }) => <option key={code} value={name} />)}
+                  </datalist>
+                  <p className="text-xs text-gray-400 mt-1">Country name or two-letter code. Leave blank to hide.</p>
                 </div>
                 <div>
                   <label className="block mb-2 text-sm font-medium">Team *</label>

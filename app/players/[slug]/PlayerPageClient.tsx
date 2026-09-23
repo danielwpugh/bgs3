@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faThumbsUp, faCaretLeft } from '@fortawesome/free-solid-svg-icons';
 import { PlayerImage } from '@/components/PlayerImage';
-import { getTeamTheme } from '@/lib/teamTheme';
+import { CountryBadge } from '@/components/CountryBadge';
 
 export interface PlayerClientShape {
   id: number;
@@ -137,9 +137,8 @@ export default function PlayerPageClient({
 
   const playerNumber = formatPlayerNumber(player);
   const voteCount = formatVoteCount(upvoteCount);
-  const theme = getTeamTheme(player.team);
-  const accentColor = theme.accentVar;
-  const accentGlow = theme.hoverGlow;
+  const accentColor = 'var(--accent-blue)';
+  const accentGlow = '0 0 20px rgba(3, 188, 230, 0.5), 0 0 40px rgba(3, 188, 230, 0.3)';
 
   return (
     <div className="min-h-screen text-fg-main">
@@ -155,7 +154,7 @@ export default function PlayerPageClient({
               <div
                 className="relative rounded-lg overflow-hidden"
                 style={{
-                  backgroundColor: player.team === 'OG' ? '#111827' : '#0a1a2e',
+                  backgroundColor: '#0a1a2e',
                   border: '2px solid',
                   borderColor: accentColor,
                   boxShadow: accentGlow,
@@ -206,20 +205,7 @@ export default function PlayerPageClient({
                 </p>
               )}
 
-              {/* Team Badge */}
-              <div className="mb-8">
-                <span
-                  className={`inline-block px-4 py-2 rounded font-bold text-lg uppercase ${
-                    player.team === 'STRONG'
-                      ? 'bg-accent-blue text-white'
-                      : player.team === 'SMART'
-                      ? 'bg-accent-pink text-white'
-                      : 'bg-accent-gray text-white'
-                  }`}
-                >
-                  {player.team}
-                </span>
-              </div>
+              <CountryBadge extraFields={player.extraFields} className="mb-8 text-lg" />
 
               {/* Vote Count */}
               <div className="flex items-center gap-6 text-gray-300 mb-8">
@@ -247,13 +233,7 @@ export default function PlayerPageClient({
                     }
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`hover:underline text-lg ${
-                      player.team === 'STRONG'
-                        ? 'text-accent-blue'
-                        : player.team === 'SMART'
-                        ? 'text-accent-pink'
-                        : 'text-accent-gray'
-                    }`}
+                    className="hover:underline text-lg text-accent-blue"
                   >
                     {player.extraFields.linkUrl}
                   </a>

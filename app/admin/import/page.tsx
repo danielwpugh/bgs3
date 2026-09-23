@@ -87,7 +87,7 @@ export default function AdminImportPage() {
           <div className="p-6 rounded-lg border-2 border-accent-blue bg-gray-900">
             <h2 className="text-2xl font-bold mb-4">Download Template</h2>
             <p className="text-gray-400 mb-4">
-              Download the CSV template to see the required format for importing players.
+              Download the CSV template to see the required format for importing players, including the optional country column.
             </p>
             <button onClick={handleDownloadTemplate} className="btn-primary">
               Download Template CSV
@@ -107,6 +107,7 @@ export default function AdminImportPage() {
           <div className="p-6 rounded-lg border-2 border-accent-pink bg-gray-900">
             <h2 className="text-2xl font-bold mb-4">Import Players</h2>
             <div className="mb-4 p-4 bg-gray-800 rounded-lg text-sm text-gray-300">
+              <p className="mb-3">Use <code>country</code> for an English country name (Australia, France) or two-letter code (AU, FR). It is stored in extra fields and supplies the public country name and flag. A blank country clears it; omitting the column preserves the existing country. Other extra fields omitted from the CSV are preserved.</p>
               <p className="font-bold mb-2">Sync Mechanism:</p>
               <ul className="list-disc list-inside space-y-1">
                 <li><strong>By ID</strong> (most reliable): If the <code className="text-accent-pink">id</code> column is provided, players are matched and updated by their internal ID.</li>
