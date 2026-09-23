@@ -51,7 +51,7 @@ Never commit this file. Use a different secret/database on staging. Include `dep
 
 ## Build, publish, and update
 
-The manually dispatched `Build release artifacts` GitHub workflow builds a SALP ZIP for the selected GitHub environment and pushes `ghcr.io/<owner>/<repo>/backend:<commit-sha>`. Configure `VITE_API_BASE_URL` as a GitHub environment variable. Configure environment protection rules if desired. It **builds/publishes artifacts only**; it does not contact DigitalOcean or upload to SALP.
+The manually dispatched `Build release artifacts` GitHub workflow builds a SALP ZIP for the selected GitHub environment and pushes `ghcr.io/<owner>/<repo>/backend:<commit-sha>`. The workflow uses the full 40-character SHA of the branch and commit selected when the run is started; it does not create a new commit. A successful run displays the exact image, artifact name, and Droplet deploy command on its GitHub Actions summary page. Configure `VITE_API_BASE_URL` as a GitHub environment variable. Configure environment protection rules if desired. It **builds/publishes artifacts only**; it does not contact DigitalOcean or upload to SALP.
 
 For a manual backend image build:
 

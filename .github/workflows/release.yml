@@ -40,3 +40,21 @@ jobs:
           file: deploy/Dockerfile
           push: true
           tags: ${{ env.IMAGE }}
+      - name: Show release details
+        run: |
+          {
+            echo "## Release ready"
+            echo
+            echo "**Commit:** \`${GITHUB_SHA}\`"
+            echo
+            echo "**Backend image:** \`${IMAGE}\`"
+            echo
+            echo "**SALP artifact:** \`salp-${BUILD_ENV}-${GITHUB_SHA}\`"
+            echo
+            echo 'Deploy from the Droplet:'
+            echo '```bash'
+            echo "bash /opt/beastgames/deploy-backend.sh ${IMAGE}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+        env:
+          BUILD_ENV: ${{ inputs.environment }}
