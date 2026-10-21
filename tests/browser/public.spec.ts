@@ -43,6 +43,11 @@ test('mobile SALP template renders without overflowing viewport',async({page})=>
   await page.setViewportSize({width:390,height:844});
   await page.addInitScript(()=>localStorage.setItem('beastgames_welcome_seen_v1','1'));
   await page.goto('/?client=mobile#/beastdex');
-  await expect(page.getByText('Showing 200 of 200 players')).toBeVisible();
+  const statusFilter=page.getByRole('combobox',{name:'Filter by player status'});
+  await expect(statusFilter).toHaveValue('ACTIVE');
+  await expect(page.getByRole('status')).toHaveText('Showing 180 of 200 players');
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  await statusFilter.selectOption('ALL');
+  await expect(page.getByRole('status')).toHaveText('Showing 200 of 200 players');
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });

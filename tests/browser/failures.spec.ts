@@ -15,7 +15,8 @@ test('password preview works cross-origin without cookies and protects the data 
     await expect(page.getByRole('heading',{name:'Enter Password'})).toBeVisible();
     await page.locator('input[type="password"]').fill('preview-test');
     await page.getByRole('button',{name:'Enter',exact:true}).click();
-    await expect(page.getByText('Showing 200 of 200 players')).toBeVisible();
+    await expect(page.getByRole('combobox',{name:'Filter by player status'})).toHaveValue('ACTIVE');
+    await expect(page.getByRole('status')).toHaveText('Showing 180 of 200 players');
     expect(await page.context().cookies('http://127.0.0.1:3000')).toEqual([]);
   } finally {await db.settings.update({where:{id:settings.id},data:{frontendPasswordEnabled:settings.frontendPasswordEnabled,frontendPassword:settings.frontendPassword}});}
 });
