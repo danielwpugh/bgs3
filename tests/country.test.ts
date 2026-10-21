@@ -31,6 +31,20 @@ test('downloadable CSV includes correctly aligned country examples', async () =>
   const rows = parse(await response.text(), { columns: true, skip_empty_lines: true });
   assert.equal(rows[0].country, 'Australia');
   assert.equal(rows[1].country, 'France');
-  assert.equal(rows[0].groupNumber, '');
-  assert.equal(rows[1].team, 'STRONG');
+  assert.equal(rows[0].groupNumber, '1');
+  assert.equal(rows[1].groupNumber, '2');
+  assert.equal(rows[0].team, '');
+  assert.equal(rows[1].team, '');
+});
+
+test('all countries shown in the UI references resolve to flag emojis', () => {
+  const references = [
+    ['Latvia', '🇱🇻'], ['Venezuela', '🇻🇪'], ['Sri Lanka', '🇱🇰'],
+    ['Togo', '🇹🇬'], ['Kiribati', '🇰🇮'], ['Mali', '🇲🇱'],
+    ['Australia', '🇦🇺'], ['Cambodia', '🇰🇭'], ['China', '🇨🇳'],
+    ['Solomon Islands', '🇸🇧'], ['Guyana', '🇬🇾'], ['Kenya', '🇰🇪'],
+  ];
+  for (const [country, flag] of references) {
+    assert.equal(getCountry({ country })?.flag, flag, country);
+  }
 });

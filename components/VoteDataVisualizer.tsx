@@ -47,7 +47,6 @@ interface PlayerStats {
   slug: string;
   name: string;
   title: string | null;
-  team: 'STRONG' | 'SMART' | 'OG';
   imageUrl: string | null;
   eliminated: boolean;
   allTime: { upvotes: number; downvotes: number; net: number };
@@ -265,11 +264,12 @@ export default function VoteDataVisualizer() {
 
       {/* Controls */}
       <div className="flex flex-wrap gap-4 items-center">
-        <div className="flex gap-2">
+        <div role="group" aria-label="Time period" className="flex flex-wrap items-center gap-2">
           <span className="text-gray-400 font-semibold">Time Period:</span>
           {(['today', 'thisWeek', 'allTime'] as TimePeriod[]).map((period) => (
             <button
               key={period}
+              aria-pressed={timePeriod === period}
               onClick={() => setTimePeriod(period)}
               className={`px-4 py-2 rounded-lg transition-opacity ${
                 timePeriod === period
@@ -285,11 +285,12 @@ export default function VoteDataVisualizer() {
             </button>
           ))}
         </div>
-        <div className="flex gap-2">
+        <div role="group" aria-label="Chart view" className="flex flex-wrap items-center gap-2">
           <span className="text-gray-400 font-semibold">View:</span>
           {(['byUpvotes', 'byDownvotes', 'byNet'] as ViewType[]).map((view) => (
             <button
               key={view}
+              aria-pressed={viewType === view}
               onClick={() => setViewType(view)}
               className={`px-4 py-2 rounded-lg transition-opacity ${
                 viewType === view
@@ -351,14 +352,9 @@ export default function VoteDataVisualizer() {
                         {player.title && (
                           <div className="text-sm text-gray-400">{player.title}</div>
                         )}
-                        <div className="text-xs mt-1">
-                          <span className="text-gray-300">
-                            {player.team}
-                          </span>
-                          {player.eliminated && (
-                            <span className="ml-2 text-red-400">ELIMINATED</span>
-                          )}
-                        </div>
+                        {player.eliminated && (
+                          <div className="text-xs mt-1 text-red-400">ELIMINATED</div>
+                        )}
                       </div>
                     </div>
                     <div className="text-right">
@@ -428,14 +424,9 @@ export default function VoteDataVisualizer() {
                         {player.title && (
                           <div className="text-sm text-gray-400">{player.title}</div>
                         )}
-                        <div className="text-xs mt-1">
-                          <span className="text-gray-300">
-                            {player.team}
-                          </span>
-                          {player.eliminated && (
-                            <span className="ml-2 text-red-400">ELIMINATED</span>
-                          )}
-                        </div>
+                        {player.eliminated && (
+                          <div className="text-xs mt-1 text-red-400">ELIMINATED</div>
+                        )}
                       </div>
                     </div>
                     <div className="text-right">

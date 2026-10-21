@@ -26,6 +26,9 @@ for (const client of ['desktop','mobile','living_room']) {
 }
 for (const dir of await readdir('dist')) {
   if (dir === 'index.html') continue;
+  if (dir === '.DS_Store') continue;
+  // Player photos use backend media URLs and ship with the backend's public folder.
+  if (dir === 'players') continue;
   if (!['css','js','images'].includes(dir)) throw new Error(`SALP disallows output folder: ${dir}`);
   await cp(join('dist',dir),join(root,base,dir),{recursive:true,filter: source => !/\.(png|jpg)$/.test(source)});
 }

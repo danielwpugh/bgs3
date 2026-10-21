@@ -84,7 +84,7 @@ const imageCache = new Map<number, {expires:number; url:string|null}>();
 
 /**
  * Resolve player image URL.
- * - Prefer local files in uploads/players for the player's number (fast, consistent)
+ * - Prefer public/players/images, then uploads/players for the player's number
  * - Fall back to the stored imageUrl (can be relative or absolute)
  */
 export async function resolvePlayerImageUrl(
@@ -116,15 +116,22 @@ export async function resolvePlayerImageUrl(
 
   // Support common formats we have in the repo (png/jpg/jpeg/webp).
   const exts = ['png', 'jpg', 'jpeg', 'webp'];
-  for (const ext of exts) {
-    const diskPath = join(process.cwd(), 'uploads', 'players', `${paddedPlayerNumber}.${ext}`);
-    try {
-      await access(diskPath, constants.F_OK);
-      const url = `/uploads/players/${paddedPlayerNumber}.${ext}`;
-      imageCache.set(playerNumber, {expires:Date.now()+30000,url});
-      return url;
-    } catch {
-      // try next extension
+  const locations = [
+    { directory: 'public/players/images', urlPrefix: '/players/images' },
+    { directory: 'uploads/players', urlPrefix: '/uploads/players' },
+  ];
+  for (const { directory, urlPrefix } of locations) {
+    for (const ext of exts) {
+      const filename = `${paddedPlayerNumber}.${ext}`;
+      const diskPath = join(process.cwd(), directory, filename);
+      try {
+        await access(diskPath, constants.F_OK);
+        const url = `${urlPrefix}/${filename}`;
+        imageCache.set(playerNumber, {expires:Date.now()+30000,url});
+        return url;
+      } catch {
+        // try next extension or location
+      }
     }
   }
 

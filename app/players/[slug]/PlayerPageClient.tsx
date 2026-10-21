@@ -75,16 +75,6 @@ export default function PlayerPageClient({
     }
   }
 
-  function formatVoteCount(count: number): string {
-    if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
-    return count.toString();
-  }
-
-  function formatPlayerNumber(p: PlayerClientShape): string {
-    const num = p.playerNumber ?? p.id;
-    return num.toString().padStart(3, '0');
-  }
-
   async function handleVote(voteType: 'UPVOTE') {
     if (!player || voting) return;
 
@@ -135,26 +125,25 @@ export default function PlayerPageClient({
 
   if (!player) return null;
 
-  const playerNumber = formatPlayerNumber(player);
-  const voteCount = formatVoteCount(upvoteCount);
+  const voteCount = upvoteCount.toLocaleString();
   const accentColor = 'var(--accent-blue)';
   const accentGlow = '0 0 20px rgba(3, 188, 230, 0.5), 0 0 40px rgba(3, 188, 230, 0.3)';
 
   return (
     <div className="min-h-screen text-fg-main">
-      <div className="container mx-auto px-4 py-8">
-        <Link href="/beastdex" className="text-white hover:underline mb-4 inline-block flex items-center">
+      <div className="player-detail-shell mx-auto my-6 px-4 py-6 sm:p-8 lg:p-10">
+        <Link href="/beastdex" className="text-white hover:underline mb-8 lg:mb-12 inline-flex items-center font-black uppercase text-sm">
           <FontAwesomeIcon icon={faCaretLeft} className="mr-1" /> Back to Beastdex
         </Link>
 
-        <div className="max-w-5xl mx-auto">
-          <div className="grid md:grid-cols-2 gap-4 md:gap-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-[0.82fr_1.18fr] gap-6 lg:gap-9 items-stretch">
             {/* Left Panel - Player Card */}
             <div className={`relative ${player.eliminated ? 'eliminated' : ''}`}>
               <div
                 className="relative rounded-lg overflow-hidden"
                 style={{
-                  backgroundColor: '#0a1a2e',
+                  backgroundColor: '#101416',
                   border: '2px solid',
                   borderColor: accentColor,
                   boxShadow: accentGlow,
@@ -185,40 +174,41 @@ export default function PlayerPageClient({
 
             {/* Right Panel - Details */}
             <div
-              className="p-8 md:p-12 flex flex-col justify-start rounded-[10px]"
+              className="p-6 lg:p-10 flex flex-col justify-start rounded-[20px] border border-white/25"
               style={{
-                backgroundColor: 'rgba(21, 21, 21, 0.6)',
+                backgroundColor: '#171717',
               }}
             >
-              {/* Name */}
-              <h1 className="text-4xl md:text-5xl font-black text-white mb-4 uppercase">
+              <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 mb-2">
+              <h1 className="text-3xl lg:text-5xl font-black text-white uppercase break-words">
                 {player.name}
               </h1>
+              <CountryBadge extraFields={player.extraFields} className="text-sm lg:text-base" />
+              </div>
 
               {/* Title */}
               {player.title && (
                 <p
-                  className="text-xl md:text-2xl font-bold mb-6 uppercase"
-                  style={{ color: 'rgba(255, 255, 255, 0.7)' }}
+                  className="text-lg lg:text-xl font-black mb-6 uppercase"
+                  style={{ color: '#898a8d' }}
                 >
                   {player.title}
                 </p>
               )}
 
-              <CountryBadge extraFields={player.extraFields} className="mb-8 text-lg" />
 
               {/* Vote Count */}
               <div className="flex items-center gap-6 text-gray-300 mb-8">
                 <div className="flex items-center gap-3">
-                  <FontAwesomeIcon icon={faThumbsUp} className="text-2xl" />
-                  <span className="text-2xl font-semibold">{voteCount}</span>
+                  <span className="text-2xl">{voteCount}<span className="sr-only"> upvotes</span></span>
+                  <FontAwesomeIcon icon={faThumbsUp} className="text-xl" />
                 </div>
               </div>
 
               {/* Bio */}
               {player.bio && (
                 <div className="mb-6">
-                  <p className="text-gray-300 leading-relaxed">{player.bio}</p>
+                  <p className="text-gray-300 leading-relaxed whitespace-pre-line">{player.bio}</p>
                 </div>
               )}
 
@@ -243,30 +233,24 @@ export default function PlayerPageClient({
               {/* Vote Buttons */}
               {!player.eliminated && (
                 <div className="mt-auto pt-8">
-                  <div className="grid grid-cols-1 gap-4">
+                  <div className="grid grid-cols-1 gap-4 w-full sm:w-4/5 mx-auto">
                     <button
                       onClick={() => handleVote('UPVOTE')}
                       disabled={voting}
-                      className="disabled:opacity-50 disabled:cursor-not-allowed uppercase border transition-colors px-6 py-3 font-semibold"
+                      className="disabled:opacity-50 disabled:cursor-not-allowed uppercase border transition-colors px-6 py-3 font-black text-xl hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent-blue"
                       style={{
-                        background: 'rgba(255, 255, 255, 0.14)',
-                        borderColor: 'rgba(255, 255, 255, 0.24)',
-                        borderRadius: '7px',
-                        color: 'white',
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!voting) e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.5)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.24)';
+                        background: '#00b4d5',
+                        borderColor: '#00b4d5',
+                        borderRadius: '10px',
+                        color: '#000',
                       }}
                     >
                       {voting ? 'VOTING...' : 'UPVOTE'}
                     </button>
                   </div>
-                  {error && <p className="mt-2 text-red-400 text-sm">{error}</p>}
+                  {error && <p role="alert" className="mt-2 text-red-400 text-sm">{error}</p>}
                   {success && (
-                    <p className="mt-2 text-green-400 text-sm">{successMessage || 'Vote recorded!'}</p>
+                    <p role="status" className="mt-2 text-green-400 text-sm">{successMessage || 'Vote recorded!'}</p>
                   )}
                 </div>
               )}

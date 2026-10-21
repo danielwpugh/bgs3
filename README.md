@@ -42,7 +42,15 @@ npm run dev
 - API readiness: http://127.0.0.1:3000/api/v1/health
 - Fixture admin: `local_admin` / `local-beastgames-admin`
 
-Fixtures create 200 players and 100,000 votes. They refuse remote databases, database names not ending in `_local`, and databases containing non-fixture players. Re-running replaces **all fixture players/votes/settings** and resets the local admin password. For heavier testing: `TEST_VOTES=1000000 npm run db:seed:test`. Portraits/uploads from the previous server are not included in this repository.
+Fixtures create 200 players and 100,000 votes. They refuse remote databases, database names not ending in `_local`, and databases containing non-fixture players. Re-running replaces **all fixture players/votes/settings** and resets the local admin password. For heavier testing: `TEST_VOTES=1000000 npm run db:seed:test`.
+
+## Batch player photos
+
+Drop photos into `public/players/images/`, named by three-digit player number, such as `001.png`, `011.jpg`, or `123.webp`. Supported extensions are lowercase `.png`, `.jpg`, `.jpeg`, and `.webp`; keep one file per player number.
+
+The app checks `public/players/images/` first, then `uploads/players/`, then the player's saved image URL. Public photos are served at `/players/images/<filename>`. Image lookup results are cached for up to 30 seconds.
+
+Commit and push the public photos before running the GitHub release build, then deploy the backend image. Docker includes the public folder automatically. The `uploads/` folder stays excluded from Git and Docker; admin uploads remain in the server's persistent storage. Player photos are served by the backend and omitted from the SALP ZIP, so deploying only the ZIP does not update them.
 
 ## Build and preview the actual SALP package
 

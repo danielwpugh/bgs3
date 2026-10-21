@@ -75,8 +75,10 @@ export default function FrontendLoginPage() {
           </p>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block mb-2 text-sm font-medium">Password</label>
+              <label htmlFor="site-password" className="block mb-2 text-sm font-medium">Password</label>
               <input
+                id="site-password"
+                autoComplete="current-password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -86,7 +88,7 @@ export default function FrontendLoginPage() {
               />
             </div>
             {error && (
-              <div className="p-3 rounded-lg bg-red-900 text-red-200 text-sm">
+              <div role="alert" className="p-3 rounded-lg bg-red-900 text-red-200 text-sm">
                 {error}
               </div>
             )}

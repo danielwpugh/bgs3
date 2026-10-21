@@ -19,7 +19,8 @@ export default function BeastdexPage() {
   const [players, setPlayers] = useState<PlayerWithVotes[]>([]);
   const [filteredPlayers, setFilteredPlayers] = useState<PlayerWithVotes[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [eliminatedFilter, setEliminatedFilter] = useState<'ALL' | 'ACTIVE' | 'ELIMINATED'>('ALL');
+  const [eliminatedFilter, setEliminatedFilter] = useState<'ALL' | 'ACTIVE' | 'ELIMINATED'>('ACTIVE');
+  const [teamFilter, setTeamFilter] = useState('ALL');
   const [sortBy, setSortBy] = useState<'name-asc' | 'name-desc' | 'playerNumber'>('name-asc');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -30,7 +31,7 @@ export default function BeastdexPage() {
 
   useEffect(() => {
     filterAndSortPlayers();
-  }, [players, searchQuery, eliminatedFilter, sortBy]);
+  }, [players, searchQuery, eliminatedFilter, teamFilter, sortBy]);
 
   async function fetchPlayers() {
     setError('');
@@ -102,6 +103,8 @@ export default function BeastdexPage() {
       });
     }
 
+    if (teamFilter !== 'ALL') filtered = filtered.filter((p) => p.team === teamFilter);
+
     // Eliminated filter
     if (eliminatedFilter === 'ACTIVE') {
       filtered = filtered.filter((p) => !isEliminated(p));
@@ -130,7 +133,7 @@ export default function BeastdexPage() {
   if (loading) {
     return (
       <div className="min-h-screen text-fg-main flex items-center justify-center">
-        <div className="text-2xl">Loading...</div>
+        <div role="status" className="text-2xl">Loading...</div>
       </div>
     );
   }
@@ -139,10 +142,10 @@ export default function BeastdexPage() {
     <div className="min-h-screen text-fg-main">
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <Link href="/" className="text-white hover:underline mb-4 inline-block flex items-center">
+          <Link href="/" className="text-white hover:underline mb-6 inline-flex items-center font-black uppercase text-sm">
             <FontAwesomeIcon icon={faCaretLeft} className="mr-1" /> Back to Home
           </Link>
-          <h1 className="text-5xl font-black mb-8 uppercase">Beastdex</h1>
+          <h1 className="text-4xl sm:text-6xl font-black mb-6 uppercase">Beastdex</h1>
         </div>
 
         {error && <p role="alert">{error} <button onClick={fetchPlayers}>Retry</button></p>}
@@ -151,17 +154,31 @@ export default function BeastdexPage() {
           <div className="flex flex-wrap gap-x-4 gap-y-2 sm:gap-y-4">
             <input
               type="text"
+              aria-label="Search players"
               placeholder="Search players..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="px-4 py-2 rounded-lg bg-gray-900 border border-gray-700 text-white focus:border-accent-blue focus:outline-none"
+              className="px-4 py-2 rounded-lg bg-black/60 border border-white/20 text-gray-300 focus:border-accent-blue focus:outline-none"
             />
 
 
             <select
+              aria-label="Filter by team"
+              value={teamFilter}
+              onChange={(e) => setTeamFilter(e.target.value)}
+              className="select-white-arrow pl-4 py-2 rounded-lg bg-black/60 border border-white/20 text-gray-300 focus:border-accent-blue focus:outline-none"
+            >
+              <option value="ALL">All Teams</option>
+              <option value="STRONG">Strong</option>
+              <option value="SMART">Smart</option>
+              <option value="OG">OG</option>
+            </select>
+
+            <select
+              aria-label="Filter by player status"
               value={eliminatedFilter}
               onChange={(e) => setEliminatedFilter(e.target.value as 'ALL' | 'ACTIVE' | 'ELIMINATED')}
-              className="select-white-arrow pl-4 py-2 rounded-lg bg-gray-900 border border-gray-700 text-white focus:border-accent-blue focus:outline-none"
+              className="select-white-arrow pl-4 py-2 rounded-lg bg-black/60 border border-white/20 text-gray-300 focus:border-accent-blue focus:outline-none"
             >
               <option value="ALL">All Players</option>
               <option value="ACTIVE">Active Only</option>
@@ -179,7 +196,7 @@ export default function BeastdexPage() {
                 id="sortBy"
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-                className="select-white-arrow pl-4 py-2 rounded-lg bg-gray-900 border border-gray-700 text-white focus:border-accent-blue focus:outline-none"
+                className="select-white-arrow pl-4 py-2 rounded-lg bg-black/60 border border-white/20 text-gray-300 focus:border-accent-blue focus:outline-none"
               >
                 <option value="name-asc">Name (A-Z)</option>
                 <option value="name-desc">Name (Z-A)</option>
@@ -190,19 +207,19 @@ export default function BeastdexPage() {
         </div>
 
         {/* Results count */}
-        <div className="mb-6 text-gray-400">
+        <div role="status" aria-atomic="true" className="mb-6 text-gray-400">
           Showing {filteredPlayers.length} of {players.length} players
         </div>
 
         {/* Player Grid */}
-        <div className="grid grid-cols-3 min-[420px]:grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-4 2xl:grid-cols-5 gap-2 sm:gap-3 xl:gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-8 sm:gap-x-6 sm:gap-y-10">
           {filteredPlayers.map((player) => (
             <Link
               key={player.id}
               href={`/players/${player.slug}`}
-              className="card-hover card-hover-blue rounded-lg overflow-hidden border-2 border-accent-blue xl:border-transparent xl:hover:border-accent-blue bg-black/20"
+              className="beastdex-card min-w-0 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent-blue focus-visible:outline-offset-4"
             >
-              <div className="relative w-full aspect-[4/5] bg-black/20">
+              <div className="relative w-full aspect-[4/5] bg-black/20 rounded-md overflow-hidden">
                 <PlayerImage
                   src={player.imageUrl}
                   alt={player.name}
@@ -230,19 +247,19 @@ export default function BeastdexPage() {
                   </div>
                 )}
               </div>
-              {/* Hide metadata on smaller breakpoints to keep tiles compact */}
-              <div className="hidden xl:block px-4 py-2">
-                <h3 className="text-xl font-black mb-0 uppercase">{player.name}</h3>
+              {/* Player details remain visible on mobile. */}
+              <div className="px-1 sm:px-3 pt-3">
+                <h2 className="text-base sm:text-xl font-black mb-0 uppercase break-words">{player.name}</h2>
                 {player.title && (
-                  <p className="text-sm text-gray-400 mb-2 font-black uppercase">{player.title}</p>
+                  <p className="text-xs sm:text-sm text-gray-400 mb-2 font-black uppercase">{player.title}</p>
                 )}
-                <div className="flex items-center justify-between mb-2">
-                  <CountryBadge extraFields={player.extraFields} />
-                  <span className="text-sm text-gray-400">
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <CountryBadge extraFields={player.extraFields} className="text-xs sm:text-sm" />
+                  <span className="text-xs sm:text-sm text-gray-400 shrink-0">
                     <span className="inline-flex items-center gap-3 tabular-nums">
                       <span className="inline-flex items-center gap-1" aria-label={`${player.upvoteCount} upvotes`}>
+                        <span>{player.upvoteCount.toLocaleString()}</span>
                         <FontAwesomeIcon icon={faThumbsUp} className="text-current" />
-                        <span>{player.upvoteCount}</span>
                       </span>
                     </span>
                   </span>

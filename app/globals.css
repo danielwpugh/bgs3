@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  --bg-main: #050710;
+  --bg-main: #000;
   --fg-main: #f9fafb;
   --accent-blue: #03bce6;
   --accent-pink: var(--accent-blue); /* Legacy highlight classes use the shared cyan accent. */
@@ -30,26 +30,25 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Main background image: keep stable on mobile (iOS Safari) */
+/* Soft neutral light at the top, fading into the black page. */
 .beastgames-main-bg {
-  height: 100svh; /* stable viewport height on mobile */
+  background: radial-gradient(ellipse 70% 320px at 50% 0, rgba(255, 255, 255, 0.14), transparent 100%), #000;
 }
 
-@supports (height: 100dvh) {
-  .beastgames-main-bg {
-    height: 100dvh; /* dynamic viewport height when supported */
-  }
+.dashboard-player-card {
+  background: #171717;
+  border: 1px solid #383838;
+  transition: border-color 180ms ease;
 }
 
-/* Background image opacity on mobile breakpoints */
-.beastgames-bg-mobile-opacity {
-  opacity: 0.5;
+.dashboard-player-card:hover,
+.dashboard-player-card:focus-visible {
+  border-color: var(--accent-blue);
 }
 
-@media (min-width: 768px) {
-  .beastgames-bg-mobile-opacity {
-    opacity: 1;
-  }
+.dashboard-player-card:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 3px;
 }
 
 /* Consistent select dropdown arrow (incl. iOS Safari) */
@@ -178,7 +177,7 @@ a {
     0 0 28px rgba(3, 188, 230, 0.55),
     0 0 52px rgba(3, 188, 230, 0.45),
     0 14px 36px rgba(0, 0, 0, 0.35);
-  outline: 2px solid rgba(255, 255, 255, 0.9);
+  outline: 2px solid var(--accent-blue);
   outline-offset: 4px;
 }
 
@@ -227,6 +226,129 @@ svg[data-icon] path {
   display: inline-block;
 }
 
+.beastdex-card > div:first-child {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: border-color 180ms ease;
+}
 
-.beastgames-outline { background-image: var(--beast-outline-desktop); }
-@media (max-width: 767px) { .beastgames-outline { background-image: var(--beast-outline-mobile); } }
+.beastdex-card:hover > div:first-child {
+  border-color: var(--accent-blue);
+}
+
+.player-detail-shell {
+  border: 1px solid #333;
+  border-radius: 20px;
+}
+
+/* Welcome modal */
+.welcome-panel {
+  position: relative;
+  width: 100%;
+  max-width: 900px;
+  max-height: calc(100svh - 3rem);
+  overflow-y: auto;
+  border: 1px solid #ffffff26;
+  border-radius: 16px;
+  background: #000;
+  color: #fff;
+  text-align: center;
+  box-shadow: 0 24px 80px #000b;
+}
+.welcome-header { padding: 40px 14% 12px; }
+.welcome-title {
+  margin-bottom: 28px;
+  font-size: clamp(22px, 3vw, 32px);
+  font-weight: 900;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+.welcome-logo { display: block; width: 100%; height: auto; }
+.welcome-content {
+  margin: 12px 24px 30px;
+  padding: 36px 12% 64px;
+  border: 2px solid #03bce6;
+  border-radius: 22px;
+  background: radial-gradient(ellipse at center, #03bce64d 0%, #03bce62b 60%, #03bce608 100%);
+  box-shadow: inset 0 0 45px #03bce6b3, 0 0 22px #03bce680;
+}
+.welcome-subtitle {
+  margin: 0 -10% 48px;
+  font-size: clamp(16px, 2.5vw, 23px);
+  font-weight: 900;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+.welcome-media {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 646 / 373;
+  overflow: hidden;
+  border: 1px solid #03bce6;
+  border-radius: 12px;
+  background: #000;
+  color: white;
+  box-shadow: 0 0 24px #03bce699;
+}
+button.welcome-media { cursor: pointer; }
+.welcome-media:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 5px; }
+.welcome-thumbnail { display: block; width: 100%; height: 100%; object-fit: cover; }
+.welcome-play {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  display: grid;
+  place-items: center;
+  width: 15%;
+  aspect-ratio: 1;
+  border: 4px solid white;
+  border-radius: 50%;
+  background: #0003;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 2px 6px #0005);
+}
+.welcome-play svg { width: 48%; margin-left: 8%; fill: currentColor; }
+.welcome-pending { position: absolute; inset: auto 0 0; padding: 12px; background: #000d; font-size: 14px; }
+@media (max-width: 600px) {
+  .welcome-header { padding: 36px 7% 12px; }
+  .welcome-title { margin-bottom: 24px; }
+  .welcome-content { margin: 12px 14px 24px; padding: 28px 14px 36px; }
+  .welcome-subtitle { margin: 0 0 28px; }
+  .welcome-play { width: 18%; border-width: 3px; }
+}
+
+.country-flag {
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  font-weight: 400;
+}
+
+/* Keyboard cues use the existing cyan accent and stay hidden for pointer use. */
+:where(a, button, input, select, textarea):focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 3px;
+}
+
+.skip-link {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 70;
+  padding: 12px 20px;
+  border-radius: 8px;
+  background: #000;
+  color: var(--accent-blue);
+  transform: translateY(-200%);
+}
+.skip-link:focus { transform: translateY(0); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .card-hover:hover, .btn-primary:hover,
+  .browse-button:hover, .browse-button:focus-visible, .browse-button:active {
+    transform: none;
+  }
+}

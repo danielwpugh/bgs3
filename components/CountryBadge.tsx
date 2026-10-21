@@ -5,7 +5,7 @@ export function CountryBadge({ extraFields, className = '' }: { extraFields: unk
   if (!country) return null;
   return (
     <span className={`inline-flex items-center gap-2 font-black uppercase text-white min-w-0 ${className}`}>
-      {country.flag && <span aria-hidden="true" className="text-3xl leading-none shrink-0">{country.flag}</span>}
+      {country.flag && <span aria-hidden="true" className="country-flag text-2xl sm:text-3xl leading-none shrink-0">{country.flag}</span>}
       <span className="break-words">{country.name}</span>
     </span>
   );

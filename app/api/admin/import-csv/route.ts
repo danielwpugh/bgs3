@@ -110,7 +110,11 @@ export async function POST(request: NextRequest) {
         }
 
         const rawTeam = row.team?.toString().trim().toUpperCase();
-        const team = rawTeam === 'SMART' ? 'SMART' : rawTeam === 'OG' ? 'OG' : 'STRONG';
+        if (rawTeam && !['STRONG', 'SMART', 'OG'].includes(rawTeam)) {
+          throw new Error('Team must be STRONG, SMART, or OG, or left blank');
+        }
+        // Blank or omitted team preserves existing players; new players use the legacy default.
+        const team = rawTeam || undefined;
         const eliminated = row.eliminated?.toLowerCase() === 'true';
 
         // Build extraFields from any columns that aren't standard fields
@@ -129,7 +133,7 @@ export async function POST(request: NextRequest) {
           bio: row.bio || null,
           imageUrl: row.imageUrl || null,
           eliminated,
-          groupNumber,
+          ...(Object.hasOwn(row, 'groupNumber') ? { groupNumber } : {}),
         };
 
         // Only include extraFields if it has values, otherwise omit it
@@ -186,7 +190,7 @@ export async function POST(request: NextRequest) {
 
             const data: any = { ...baseData, slug: slugForCreate };
             // Create new player (id will be auto-generated, ignore provided id)
-            await prisma.player.create({ data });
+            await prisma.player.create({ data: { ...data, team: team ?? 'STRONG' } });
             results.created++;
             wasCreated = true;
           }
@@ -231,7 +235,7 @@ export async function POST(request: NextRequest) {
                 results.updated++;
               } else {
                 const data: any = { ...baseData, slug: rawSlug };
-                await prisma.player.create({ data });
+                await prisma.player.create({ data: { ...data, team: team ?? 'STRONG' } });
                 results.created++;
                 wasCreated = true;
               }
@@ -239,7 +243,7 @@ export async function POST(request: NextRequest) {
               // Create new player with a unique generated slug to avoid accidental merges.
               const slugForCreate = await ensureUniqueSlug(baseGeneratedSlug);
               const data: any = { ...baseData, slug: slugForCreate };
-              await prisma.player.create({ data });
+              await prisma.player.create({ data: { ...data, team: team ?? 'STRONG' } });
               results.created++;
               wasCreated = true;
             }
@@ -286,7 +290,7 @@ export async function POST(request: NextRequest) {
             }
             const slugForCreate = slugProvided ? desiredSlug : await ensureUniqueSlug(desiredSlug);
             const data: any = { ...baseData, slug: slugForCreate };
-            await prisma.player.create({ data });
+            await prisma.player.create({ data: { ...data, team: team ?? 'STRONG' } });
             results.created++;
             wasCreated = true;
           }

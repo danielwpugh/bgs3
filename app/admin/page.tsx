@@ -18,10 +18,6 @@ interface Stats {
   totalVotes: number;
   playerCount: number;
   todayVotes: number;
-  teamVotes: {
-    STRONG: number;
-    SMART: number;
-  };
 }
 
 interface VisitorStats {
@@ -97,7 +93,7 @@ export default function AdminDashboard() {
         {loading ? (
           <div className="text-center py-16 font-black">LOADING</div>
         ) : stats ? (
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+          <div className="grid md:grid-cols-3 gap-6 mb-12">
             <div className="p-6 rounded-lg" style={{ backgroundColor: 'rgba(89, 88, 88, 0.3)', border: '1px solid rgba(255, 255, 255, 0.2)' }}>
               <h3 className="text-lg text-gray-400 mb-2">Total Players</h3>
               <p className="text-4xl font-bold text-white">{stats.playerCount}</p>
@@ -109,17 +105,6 @@ export default function AdminDashboard() {
             <div className="p-6 rounded-lg" style={{ backgroundColor: 'rgba(89, 88, 88, 0.3)', border: '1px solid rgba(255, 255, 255, 0.2)' }}>
               <h3 className="text-lg text-gray-400 mb-2">Today&apos;s Votes</h3>
               <p className="text-4xl font-bold text-white">{stats.todayVotes}</p>
-            </div>
-            <div className="p-6 rounded-lg" style={{ backgroundColor: 'rgba(89, 88, 88, 0.3)', border: '1px solid rgba(255, 255, 255, 0.2)' }}>
-              <h3 className="text-lg text-gray-400 mb-2">Team Votes</h3>
-              <div className="mt-2">
-                <p className="text-lg text-white">
-                  <span className="font-semibold">STRONG:</span> {stats.teamVotes?.STRONG ?? 0}
-                </p>
-                <p className="text-lg text-white">
-                  <span className="font-semibold">SMART:</span> {stats.teamVotes?.SMART ?? 0}
-                </p>
-              </div>
             </div>
           </div>
         ) : (
