@@ -14,7 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: {node-version: 22, cache: npm}
+        with: {node-version-file: .nvmrc, cache: npm}
       - run: npm ci && npm run db:generate && npm run typecheck && npm test
       - run: node scripts/build-salp.mjs "$BUILD_ENV" && node scripts/verify-salp.mjs "$BUILD_ENV"
         env:

@@ -18,7 +18,7 @@ Staging is configured for `https://bg-api.lightsailvr.com/api/v1`, Amazon origin
 
 ## Local quick start
 
-Use Node 22 LTS and npm. From this repository:
+Use Node 22.23.4 LTS (or a newer Node 22 security patch) and npm. Run `nvm install && nvm use` to select the version pinned in `.nvmrc`. For the downloaded repo-local runtime, use `export PATH="$PWD/.local/node-v22.23.4-darwin-arm64/bin:$PATH"` in your shell. From this repository:
 
 ```bash
 npm ci
